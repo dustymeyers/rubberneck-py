@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+import logging
 from typing import Any, Dict, Optional
 from typing import List
 
@@ -6,8 +7,9 @@ from marshmallow import Schema, fields
 
 class MonsterSchema(Schema):
     """
-    
+    Schema for the Monster model.
     """
+
     index = fields.Str(required=True)
     url = fields.Str(required=True)
     name = fields.Str(required=True)
@@ -43,7 +45,19 @@ class MonsterSchema(Schema):
 
 @dataclass
 class Monster:
-    __schema__: MonsterSchema = MonsterSchema()
+    """
+        Description: 
+
+        The Monster model. Currently the data is fetched from the DnD API and mapped to this model.
+        This model is used to represent a monster returned from the DND SRD.
+
+        Methods:
+
+        to_dict: Returns a dictionary representation of the Monster model.
+    
+    """
+
+    __schema__: MonsterSchema 
     index: str
     url: str
     name: str
@@ -77,7 +91,17 @@ class Monster:
     legendary_actions: Optional[List[Dict[str, Any]]] = None
     special_abilities: Optional[List[Dict[str, Any]]] = None
 
-    def __init__(self, data: Dict[str, Any]):
+    def __init__(self, data: Dict[str, Any], logger: logging.Logger):
+        """
+        data: Dict[str, Any]
+            The data to initialize the Monster model with.
+            {
+                "index": "ancient-bronze-dragon",
+                "name": "Ancient Bronze Dragon",
+                "url": "/api/monsters/ancient-bronze-dragon"
+            }
+        """
+        self.__schema__ = MonsterSchema()
         monster = self.__schema__.load(data)
         self.__dict__.update({key: getattr(monster, key) if getattr(monster, key) is not None else None for key in self.__annotations__})
 
