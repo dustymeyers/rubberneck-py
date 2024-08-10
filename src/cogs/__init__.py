@@ -1,0 +1,1 @@
+from .bestiary import Bestiary
