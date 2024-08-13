@@ -1,6 +1,5 @@
-from bot import Rubberneck
 from dotenv import load_dotenv
-from discord import Bot
+from discord.ext import commands
 import os
 import discord
 
@@ -11,12 +10,12 @@ TOKEN = os.getenv("DISCORD_BOT_TOKEN")
 
 cogs_list = [
     'bestiary',
-    # 'greetings'
+    'pagetest'
 ]
 
 # bot: Bot = Rubberneck(intents=discord.Intents.all())
 
-bot = Bot(intents=discord.Intents.all())
+bot = commands.Bot(intents=discord.Intents.all())
 
 @bot.slash_command()
 async def ping(ctx):
