@@ -7,6 +7,8 @@ from service import DnDAPIClient
 from models import Monster
 from logger import logger
 from dotenv import load_dotenv
+from discord.ext.pages import Page,PageGroup,Paginator, PaginatorButton
+
 
 load_dotenv()
 
@@ -26,7 +28,7 @@ class Bestiary(commands.Cog):
         self.logger.info("Bestiary cog loaded")
         
 
-    @slash_command(guild_ids=[GUILD_ID],name='monsters', description="Returns a list of all monsters available in the D&D 5e SRD.")
+    @slash_command(name='monsters', description="Returns a list of all monsters available in the D&D 5e SRD.")
     async def monsters(self, ctx: ApplicationContext):
         """
             Returns a list of all monsters available in the D&D 5e SRD.
@@ -35,23 +37,70 @@ class Bestiary(commands.Cog):
         try:
             monsters: List[Monster] = self.client.get_monsters()
 
-            embed = Embed(
+            pages = []
+
+            monster_chunks = self.chunk_monsters(monsters)
+
+            total_pages = len(monster_chunks)
+
+            for page_number, chunk in enumerate(monster_chunks, start=1):
+                self.logger.debug(f"Creating page {page_number} of {total_pages}")
+                pages.append(self.make_monster_embed(chunk))
+            
+            paginator = Paginator(pages=pages)
+
+            await paginator.respond(ctx.interaction, ephemeral=False)
+
+        except Exception as e:
+            self.logger.error(f"Error: {e}", exc_info=True)
+            await ctx.respond(f"Error: {e}")
+
+
+    def chunk_monsters(self, monsters: List[Monster], max_chunk_size: int = 25) -> List[List[Monster]]:
+        """
+        Splits a list of monsters into chunks of up to `max_chunk_size` elements.
+        Each chunk will contain at least one monster.
+
+        Args:
+            monsters (List[Monster]): The list of monsters to be chunked.
+            max_chunk_size (int, optional): The maximum size of each chunk. Defaults to 25.
+
+        Returns:
+            List[List[Monster]]: A list of chunks, where each chunk is a list of up to `max_chunk_size` monsters.
+        """
+        chunks = []
+        for i in range(0, len(monsters), max_chunk_size):
+            chunk = monsters[i:i + max_chunk_size]
+            if chunk:
+                chunks.append(chunk)
+        return chunks
+
+    def make_monster_embed(self, monsters: List[Monster]) -> Embed:
+        """
+            Returns an embed with a list of monsters.
+            Maximum length of 25 monsters.
+        """
+        if len(monsters) > 25:
+            self.logger.warning("Maximum number of monsters exceeded. Returning first 25 monsters.")
+            monsters = monsters[:25]
+
+        embed = Embed(
                 title="Monsters",
                 description="A list of all monsters available in the D&D 5e SRD.",
                 color = Colour.blurple(),
             )
-
-            random_monsters: List[Monster] = monsters[:25]
-            for monster in random_monsters:
-                embed.add_field(name=monster.name, value=monster.url, inline=True)
-
-            # TODO: modify this to use embed for displaying te list monsters
-            await ctx.respond(f"Here's some monsters", embed=embed)
-
+        
+        try:
+            for monster in monsters:
+                if monster is None:
+                    continue
+                else:
+                    self.logger.debug(f"Adding monster {monster.name} to embed")
+                    embed.add_field(name=monster.name, value=monster.url, inline=True)
         except Exception as e:
-            self.logger.error(f"Error: {e}")
-            await ctx.respond(f"Error: {e}")
-        # await ctx.respond(f"Beasts: {monsters[1].to_dict()['name']}")
+            raise e
+        
+        return embed
 
 def setup(bot):
     bot.add_cog(Bestiary(bot))
