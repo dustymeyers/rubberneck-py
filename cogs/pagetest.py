@@ -19,6 +19,9 @@ class PageTest(commands.Cog):
 
     __pages: list[PageGroup] | list[Page] | list[str] | list[list[Embed] | Embed]
     __bot: Bot
+    __more_pages: list[Page]
+    __even_more_pages: list[str]
+
     def __init__(self, bot: Bot):
         self.__bot = bot
         self.__pages = [
@@ -49,13 +52,13 @@ class PageTest(commands.Cog):
             name="Another Example Field", value="Another Example Value", inline=False
         )
 
-        self.more_pages = [
+        self.__more_pages = [
             "Second Page One",
             Embed(title="Second Page Two"),
             Embed(title="Second Page Three"),
         ]
 
-        self.even_more_pages = ["11111", "22222", "33333"]
+        self.__even_more_pages = ["11111", "22222", "33333"]
 
         self.new_pages = [
             Page(
