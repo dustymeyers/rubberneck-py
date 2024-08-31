@@ -3,11 +3,74 @@ rebuilding the rubberneck discord bot but with python and connected to dnd 5e ap
 
 I want to create a DnD 5e supporting discord bot which can make requests to dnd5eapi.co. I expect to create the main bot which will use different modules for accessing information about monsters, spells, rules, etc.
 
-# requirements
+## requirements
 
-# setup
+## setup
 
-# run
+1. Create a virtual environment.
+
+```shell
+    python -m venv venv
+```
+
+2. Activate the virtual environment. VSC terminals will activate the virtual environment if you point the interpreter to the virtual environment, otherwise use the following command. 
+
+*Windows*
+```shell
+    venv\Scripts\activate
+```
+
+*macOS/Linux*
+```shell
+    source venv/bin/activate
+```
+
+3. Install the dependencies.
+
+```shell
+    pip install-r requirements.txt
+```
+
+## running in debug mode with VSC
+
+1. *(Optional)* Setup your `launch.json`, if you don't already have one. 
+
+*Example*:
+- *Note*: you'll need to get a discord bot token for testing. For steps on how to get the `DISCORD_BOT_TOKEN`, follow guide from [pycord](https://docs.pycord.dev/en/stable/discord.html)
+
+```json
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug Bot",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/main.py",
+            "console": "integratedTerminal",
+            "env": {
+                "DISCORD_BOT_TOKEN": ""
+            }
+        }
+    ]
+}
+```
+
+2. Press the play button for "Debug Bot" selection, or hit `F5` if you've already got it selected.
+    
+### running in production 
+1. *cd* into the working directory, and execute main.py.
+
+```shell
+    python main.py
+```
+
+2. The rest of the production plan doesn't exist yet since there has not been a full release.
+
+
 
 - dnd_discord_bot/
     - bot/
