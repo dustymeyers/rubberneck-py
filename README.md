@@ -40,6 +40,16 @@ See the requirements.txt for a list of python library dependencies.
     pip install-r requirements.txt
 ```
 
+4. (Optional) - Remove password requirement for sudo commands. From the Linux shell, do the following:
+
+```shell
+    cd /etc/sudoers.d
+    sudo sh
+    echo "%sudo ALL=(ALL) NOPASSWD: /usr/sbin/service redis-server *" >> allowed-services
+    sudo chmod 0440 allowed-services
+    exit
+```
+
 ## running in debug mode with VSC
 
 1. Start up the redis server
