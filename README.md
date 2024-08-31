@@ -5,6 +5,15 @@ I want to create a DnD 5e supporting discord bot which can make requests to dnd5
 
 ## requirements
 
+Some kind of IDE that is able to run python. I suggest Visual Studio Code (VSC).
+
+[Python 3.12.4](https://www.python.org/downloads/release/python-3124/)
+
+[Redis](https://redis.io/docs/latest/operate/oss_and_stack/install/install-redis/)
+
+
+See the requirements.txt for a list of python library dependencies.
+
 ## setup
 
 1. Create a virtual environment.
@@ -33,7 +42,13 @@ I want to create a DnD 5e supporting discord bot which can make requests to dnd5
 
 ## running in debug mode with VSC
 
-1. *(Optional)* Setup your `launch.json`, if you don't already have one. 
+1. Start up the redis server
+
+    - Windows:
+        1. In your command line run `wsl` to log into your ubuntu instance.
+        2. Run `sudo service redis-server start`
+
+2. *(Optional)* Setup your `launch.json`, if you don't already have one. 
 
 *Example*:
 - *Note*: you'll need to get a discord bot token for testing. For steps on how to get the `DISCORD_BOT_TOKEN`, follow guide from [pycord](https://docs.pycord.dev/en/stable/discord.html)
@@ -59,7 +74,10 @@ I want to create a DnD 5e supporting discord bot which can make requests to dnd5
 }
 ```
 
-2. Press the play button for "Debug Bot" selection, or hit `F5` if you've already got it selected.
+3. Press the play button for "Debug Bot" selection, or hit `F5` if you've already got it selected.
+
+4. To stop the redis-server,
+    - if using wsl, use the command `sudo service redis-server stop`
     
 ### running in production 
 1. *cd* into the working directory, and execute main.py.
