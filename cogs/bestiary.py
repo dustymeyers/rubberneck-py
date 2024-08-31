@@ -55,6 +55,18 @@ class Bestiary(commands.Cog):
             self.logger.error(f"Error: {e}", exc_info=True)
             await ctx.respond(f"Error: {e}")
 
+    @slash_command(name='monster', description="Returns a specific monster.")
+    async def monster(self, ctx: ApplicationContext, name: str):
+        """
+            Returns a specific monster.
+        """
+        try:
+            monster: Monster = self.client.get_monster(name)
+            embed = self.make_monster_embed([monster])
+            await ctx.respond(embed=embed)
+        except Exception as e:
+            self.logger.error(f"Error: {e}", exc_info=True)
+            await ctx.respond(f"Error: {e}")
 
     def chunk_monsters(self, monsters: List[Monster], max_chunk_size: int = 25) -> List[List[Monster]]:
         """
