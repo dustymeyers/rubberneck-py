@@ -88,3 +88,7 @@ class RedisClient:
     @_ensure_connection
     def exists(self, key):
         return self._r.exists(key)
+
+    @_ensure_connection
+    def create(self, key_prefix, data):
+        return self._r.ft().create(key_prefix, data)
