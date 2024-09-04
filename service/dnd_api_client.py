@@ -4,6 +4,7 @@ from logger  import logger
 import requests
 from typing import Any, Dict, List
 from models import Monster
+from models.monster import MonsterSchema
 from service.redis_client import RedisClient
 
 class DnDAPIClient:
@@ -37,7 +38,7 @@ class DnDAPIClient:
     
     def _lazy_load_monsters(self) -> List[Dict[str,Any]]:
         url = f"{self.base_url}"
-        redis_key = "monsters"
+        redis_key = "json:monsters"
 
         if self.redis_client:
             try:
@@ -51,6 +52,7 @@ class DnDAPIClient:
                 self.logger.error(f"{self.__class__.__name__} - Error retrieving monsters from cache: {e}")
         else:
             self.logger.warning(f"{self.__class__.__name__} - Redis client not initialized")
+
         try:
             self.logger.info(f"{self.__class__.__name__} - Fetching monsters from {url}")
             response = requests.get(url)
@@ -73,6 +75,22 @@ class DnDAPIClient:
             self.logger.error(f"{self.__class__.__name__} - Error while lazy loading monsters: {e}")
             raise
     
+    def _add_monster(monster_data):
+        """
+        TODO: Add all redis stuff to the bestiary. Lets limit only connections to DND API in this class.
+        """
+        try:
+            schema = MonsterSchema()
+            monster = schema.load(monster_data)
+            redis_monster = {
+                key: str(value) if isinstance(value, (list, dict)) else value
+                for key,value in monster.items() if value is not None
+            }
+            self.redis_client.create('monster:', redis_monster)
+            
+        except Exception as e:
+            self.logger.error(f"{self.__class__.__name__} - Error adding monster: {e}")
+            raise e
 
     def get_monster(self, index: str) -> Dict[str, Any]:
         url = f"{self.base_url}/{index}"
