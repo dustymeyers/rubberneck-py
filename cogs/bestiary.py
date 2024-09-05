@@ -3,7 +3,7 @@ import os
 from typing import List
 from discord import slash_command, Embed, Bot, ApplicationContext, Colour
 from discord.ext import commands
-from service import DnDAPIClient
+from service import DnDAPIClient, RedisClient
 from models import Monster
 from logger import logger
 from dotenv import load_dotenv
@@ -17,16 +17,13 @@ GUILD_ID = os.getenv('GUILD_ID')
 class Bestiary(commands.Cog):
 
     client: DnDAPIClient
-    logger: Logger
+    logger: Logger = logger
     bot: Bot
-    __base_url: str = 'https://www.dnd5eapi.co/api/monsters'
 
     def __init__(self, bot: commands.Bot):
         self.bot = bot
-        self.logger = logger
-        self.client = DnDAPIClient(base_url=self.__base_url)
-        self.logger.info("Bestiary cog loaded")
-        
+        self.client = DnDAPIClient()
+        self.logger.debug(f"{self.__class__.__name__} - Bestiary cog loaded")
 
     @slash_command(name='monsters', description="Returns a list of all monsters available in the D&D 5e SRD.")
     async def monsters(self, ctx: ApplicationContext):
