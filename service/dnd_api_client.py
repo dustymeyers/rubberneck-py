@@ -13,12 +13,12 @@ class DnDAPIClient:
             A client for the DnD 5e API.
     """
 
-    base_url: str
+    __base_url: str
     logger: Logger
     redis_client: RedisClient
+    __base_url: str = 'https://www.dnd5eapi.co/api/monsters'
 
-    def __init__(self, base_url: str):
-        self.base_url = base_url
+    def __init__(self):
         self.logger = logger
 
         try:
@@ -28,72 +28,80 @@ class DnDAPIClient:
         self.logger.info("DnDAPIClient initialized")
 
     def get_monsters(self) -> List[Monster]:
-        url = f"{self.base_url}"
+        """
+        Uses lazy loading to load the monsters from the API. Stores them in the redis cache for one hour.
+        Returns a list of Monster objects.
+        """
         try:
-            monsters_json: List[Dict[str,Any]] = self._lazy_load_monsters()
+            monsters_json: List[Dict[str,Any]] = self._lazy_load_monsters_list_json()
+            
             return [Monster(monster) for monster in monsters_json]
         except requests.exceptions.RequestException as e:
-            self.logger.error(f"Error fetching monsters from {url}: {e}")
-            raise
+            self.logger.error(f"Error getting monsters: {e}")
+            raise e
+        except Exception as e:
+            self.logger.error(f"Error getting monsters: {e}")
+            raise e
     
-    def _lazy_load_monsters(self) -> List[Dict[str,Any]]:
-        url = f"{self.base_url}"
-        redis_key = "json:monsters"
-
-        if self.redis_client:
-            try:
-                cached_monsters = self.redis_client.get_value(redis_key)
-                if cached_monsters:
-                    self.logger.info("Using cached monsters")
-                    return json.loads(cached_monsters)
-                else:
-                    self.logger.info(f"{self.__class__.__name__} - No monsters in cache")
-            except Exception as e:
-                self.logger.error(f"{self.__class__.__name__} - Error retrieving monsters from cache: {e}")
-        else:
-            self.logger.warning(f"{self.__class__.__name__} - Redis client not initialized")
-
+    def _lazy_load_monsters_list_json(self) -> List[Dict[str,Any]]:
         try:
-            self.logger.info(f"{self.__class__.__name__} - Fetching monsters from {url}")
-            response = requests.get(url)
+            monsters_json_list = self._get_cached_monsters()
+
+        except Exception as e:
+            self.logger.error(f"{self.__class__.__name__} - Error retrieving monsters from cache: {e}")
+            monsters_json_list = None
+
+        if monsters_json_list is None:
+            try:
+                monsters_json_list = self._get_monsters_list_from_api()
+            except Exception as e:
+                self.logger.error(f"{self.__class__.__name__} - Error while lazy loading monsters: {e}")
+                raise e
+            
+            try:
+                self._cache_monsters_list_json(monsters_json_list)
+            except:
+                self.logger.error(f"{self.__class__.__name__} - Error caching monsters json")
+        
+        return monsters_json_list
+    
+    def _get_cached_monsters(self) -> List[Dict[str,Any]] | None:
+        redis_key = "json:monsters"
+        cached_monsters = None
+        try: 
+            cached_monsters_str = self.redis_client.get_value(redis_key).decode('utf-8')
+
+            cached_monsters = json.loads(cached_monsters_str)
+        except Exception as e:
+            self.logger.error(f"{self.__class__.__name__} - Error retrieving monsters from cache: {e}")
+        finally:
+            return cached_monsters
+        
+    def _cache_monsters_list_json(self, monsters_json_list: List[Dict[str,Any]]) -> None:
+        redis_key = "json:monsters"
+        try:
+            self.redis_client.set_value_ex(redis_key, 3600, json.dumps(monsters_json_list))
+            self.logger.info(f"{self.__class__.__name__} - Cached monsters for 1 hour")
+        except Exception as e:
+            self.logger.error(f"{self.__class__.__name__} - Error caching monsters: {e}")
+
+    def _get_monsters_list_from_api(self) -> List[Dict[str,Any]]:
+        try:
+            response = requests.get(self.__base_url)
             response.raise_for_status()
             monsters_json_list: List[Dict[str,Any]] = response.json()['results']
-            self.logger.info(f"{self.__class__.__name__} - Successfully fetched monsters from {url}")
-
-            if self.redis_client:
-                try:
-                    self.redis_client.set_value_ex(redis_key, 3600, json.dumps(monsters_json_list))
-                    self.logger.info(f"{self.__class__.__name__} - Cached monsters for 1 hour")
-                except Exception as e:
-                    self.logger.error(f"{self.__class__.__name__} - Error caching monsters: {e}")
-
+            self.logger.info(f"{self.__class__.__name__} - Successfully fetched monsters from {self.url}")
             return monsters_json_list
         except requests.exceptions.RequestException as e:
-            self.logger.error(f"{self.__class__.__name__} - Error fetching monsters from {url}: {e}")
+            self.logger.error(f"{self.__class__.__name__} - Error fetching monsters from {self.url}: {e}")
             raise
         except Exception as e:
-            self.logger.error(f"{self.__class__.__name__} - Error while lazy loading monsters: {e}")
+            self.logger.error(f"{self.__class__.__name__} - Error while fetching monsters: {e}")
             raise
-    
-    def _add_monster(monster_data):
-        """
-        TODO: Add all redis stuff to the bestiary. Lets limit only connections to DND API in this class.
-        """
-        try:
-            schema = MonsterSchema()
-            monster = schema.load(monster_data)
-            redis_monster = {
-                key: str(value) if isinstance(value, (list, dict)) else value
-                for key,value in monster.items() if value is not None
-            }
-            self.redis_client.create('monster:', redis_monster)
-            
-        except Exception as e:
-            self.logger.error(f"{self.__class__.__name__} - Error adding monster: {e}")
-            raise e
 
     def get_monster(self, index: str) -> Dict[str, Any]:
-        url = f"{self.base_url}/{index}"
+        self.redis_client
+        url = f"{self.__base_url}/{index}"
         try:
             response = requests.get(url)
             response.raise_for_status()
@@ -102,3 +110,17 @@ class DnDAPIClient:
         except requests.exceptions.RequestException as e:
             self.logger.error(f"Error fetching monster {index} from {url}: {e}")
             raise
+    
+    def add_monster(self, monster_data: Dict[str, Any]) -> None:
+        try:
+            self.redis_client.create('monster:', monster_data)
+            schema = MonsterSchema()
+            monster = schema.load(monster_data)
+            redis_monster = {
+                key: str(value) if isinstance(value, (list, dict)) else value
+                for key,value in monster.items() if value is not None
+            }
+            self.redis_client.create('monster:', redis_monster)
+        except Exception as e:
+            self.logger.error(f"{self.__class__.__name__} - Error adding monster: {e}")
+            raise e
