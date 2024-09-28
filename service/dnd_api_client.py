@@ -90,10 +90,10 @@ class DnDAPIClient:
             response = requests.get(self.__base_url)
             response.raise_for_status()
             monsters_json_list: List[Dict[str,Any]] = response.json()['results']
-            self.logger.info(f"{self.__class__.__name__} - Successfully fetched monsters from {self.url}")
+            self.logger.info(f"{self.__class__.__name__} - Successfully fetched monsters from {self.__base_url}")
             return monsters_json_list
         except requests.exceptions.RequestException as e:
-            self.logger.error(f"{self.__class__.__name__} - Error fetching monsters from {self.url}: {e}")
+            self.logger.error(f"{self.__class__.__name__} - Error fetching monsters from {self.__base_url}: {e}")
             raise
         except Exception as e:
             self.logger.error(f"{self.__class__.__name__} - Error while fetching monsters: {e}")
