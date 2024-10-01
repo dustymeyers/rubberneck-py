@@ -4,6 +4,131 @@ from marshmallow import Schema, fields
 import redis
 from redis.commands.search.field import TextField, NumericField, TagField
 
+class ArmorClassSchema(Schema):
+    """
+    Schema for the ArmorClass model.
+    """
+
+    value = fields.Int(required=True)
+    type = fields.Str(required=True)
+
+class SensesSchema(Schema):
+    """
+    Schema for the Senses model.
+    """
+
+    blindsight = fields.Str(allow_none=True)
+    darkvision = fields.Str(allow_none=True)
+    tremorsense = fields.Str(allow_none=True)
+    passive_perception = fields.Int(required=True)
+
+class SpeedSchema(Schema):
+    """
+    Schema for the Speed model.
+    """
+
+    walk = fields.Str(allow_none=True)
+    fly = fields.Str(allow_none=True)
+    swim = fields.Str(allow_none=True)
+    climb = fields.Str(allow_none=True)
+
+class GeneralProficiency(Schema):
+    """
+    Schema for the GeneralProficiency model.
+    """
+
+    index = fields.Str(required=True)
+    name = fields.Str(required=True)
+    url = fields.Str(required=True)
+
+class MonsterProficiency(Schema):
+    """
+    Schema for the MonsterProficiency model.
+    """
+
+    value = fields.Int(required=True)
+    proficiency = fields.Nested(GeneralProficiency)
+
+class DCType(Schema):
+    """
+    Schema for the DCType model.
+    """
+
+    index = fields.Str(required=True)
+    name = fields.Str(required=True)
+    url = fields.Str(required=True)
+
+class DC(Schema):
+    """
+    Schema for the DC model.
+    """
+
+    dc_type = fields.Nested(DCType)
+    dc_value = fields.Int(required=True)
+    success_type = fields.Str(required=True)
+
+class Usage(Schema):
+    """
+    Schema for the Usage model.
+    """
+
+    type = fields.Str(required=True)
+    times = fields.Int(required=True)
+
+class SpecialAbility(Schema):
+    """
+    Schema for the SpecialAbilities model.
+    """
+
+    name = fields.Str(required=True)
+    desc = fields.Str(required=True)
+    usage = fields.Nested(Usage, allow_none=True)
+    dc = fields.Nested(DC, allow_none=True)
+
+
+class DamageType(Schema):
+    """
+    Schema for the DamageType model.
+    """
+
+    index = fields.Str(required=True)
+    name = fields.Str(required=True)
+    url = fields.Str(required=True)
+
+class Damage(Schema):
+    """
+    Schema for the Damage model.
+    """
+
+    damage_type = fields.Nested(DamageType, required=True)
+    damage_dice = fields.Str(required=True)
+
+
+
+class GeneralAction(Schema):
+    """
+    Schema for the GeneralActions model.
+    """
+
+    action_name = fields.Str(required=True)
+    type = fields.Str(required=True)
+    count = fields.Int(required=True)
+                      
+class Action(Schema):
+    """
+    Schema for the Actions model.
+    """
+
+    name = fields.Str(required=True)
+    desc = fields.Str(required=True)
+    multiattack_type = fields.Str(allow_none=True)
+    actions = fields.List(fields.Nested(GeneralAction), allow_none=True)
+    attack_bonus = fields.Int(allow_none=True)
+    dc = fields.Nested(DC, allow_none=True)
+    usage = fields.Nested(Usage, allow_none=True)
+    damage = fields.List(fields.Nested(Damage), allow_none=True)
+
+
 class MonsterSchema(Schema):
     """
     Schema for the Monster model.
@@ -17,32 +142,37 @@ class MonsterSchema(Schema):
     type = fields.Str(allow_none=True)
     subtype = fields.Str(allow_none=True)
     alignment = fields.Str(allow_none=True)
-    armor_class = fields.Dict(allow_none=True)
+    armor_class = fields.List(fields.Nested(ArmorClassSchema), allow_none=True)
     hit_points = fields.Int(allow_none=True)
     hit_dice = fields.Str(allow_none=True)
     hit_points_roll = fields.Str(allow_none=True)
-    speed = fields.Dict(allow_none=True)
+    speed = fields.Nested(SpeedSchema, allow_none=True)
     strength = fields.Int(allow_none=True)
     dexterity = fields.Int(allow_none=True)
     constitution = fields.Int(allow_none=True)
     intelligence = fields.Int(allow_none=True)
     wisdom = fields.Int(allow_none=True)
     charisma = fields.Int(allow_none=True)
-    proficiencies = fields.List(fields.Str(), allow_none=True)
-    damage_vulnerabilities = fields.List(fields.Str(), allow_none=True)
-    damage_resistances = fields.List(fields.Str(), allow_none=True)
-    damage_immunities = fields.List(fields.Str(), allow_none=True)
-    condition_immunities = fields.List(fields.Str(), allow_none=True)
-    senses = fields.Dict(allow_none=True)
+    proficiencies = fields.List(fields.Nested(MonsterProficiency), allow_none=True)
+    senses = fields.Nested(SensesSchema, allow_none=True)
     languages = fields.Str(allow_none=True)
     challenge_rating = fields.Int(allow_none=True)
     proficiency_bonus = fields.Int(allow_none=True)
     xp = fields.Int(allow_none=True)
-    actions = fields.List(fields.Dict(), allow_none=True)
-    legendary_actions = fields.List(fields.Dict(), allow_none=True)
-    special_abilities = fields.List(fields.Dict(), allow_none=True)
-
+    actions = fields.List(fields.Nested(Action), allow_none=True)
+    legendary_actions = fields.List(fields.Nested(Action), allow_none=True)
+    special_abilities = fields.List(fields.Nested(SpecialAbility), allow_none=True)
+    image = fields.Str(allow_none=True)
+    # these four likely need to be changed with their own schemeas
+    
+    damage_vulnerabilities = fields.List(fields.Str(), allow_none=True)
+    damage_resistances = fields.List(fields.Str(), allow_none=True)
+    damage_immunities = fields.List(fields.Str(), allow_none=True)
+    condition_immunities = fields.List(fields.Str(), allow_none=True)
 def create_monster_schema(redis_conn):
+    """
+    This is not currently implemented.
+    """
     try:
         # Create a Redis search index for the Monster model
         redis_conn.ft().create_index([
