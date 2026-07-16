@@ -8,9 +8,18 @@ def setup_logger(level: int=logging.DEBUG):
 
     logger.setLevel(logging.DEBUG)
     logging.getLogger('discord.http').setLevel(logging.INFO)
+    # Gateway payloads can be enormous. Writing them synchronously at DEBUG
+    # level delays latency-sensitive interactions such as autocomplete.
+    logging.getLogger('discord.gateway').setLevel(logging.INFO)
+    logging.getLogger('discord.client').setLevel(logging.INFO)
+    logging.getLogger('discord.webhook').setLevel(logging.INFO)
 
     dt_fmt = '%Y-%m-%d %H:%M:%S'
-    formatter = logging.Formatter('[{asctime}] [{levelname:<8}] {name}: {message}', dt_fmt, style='{')
+    formatter = logging.Formatter(
+        '[{asctime}.{msecs:03.0f}] [{levelname:<8}] {name}: {message}',
+        dt_fmt,
+        style='{',
+    )
 
     rf_handler = logging.handlers.RotatingFileHandler(
         filename='discord.log',

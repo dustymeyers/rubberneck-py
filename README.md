@@ -3,6 +3,13 @@ rebuilding the rubberneck discord bot but with python and connected to dnd 5e ap
 
 I want to create a DnD 5e supporting discord bot which can make requests to dnd5eapi.co. I expect to create the main bot which will use different modules for accessing information about monsters, spells, rules, etc.
 
+## commands
+
+- `/rule name` looks up a rule section from the 2014 D&D 5e SRD. Begin typing
+  to see matching rules such as **Cover**, **Resting**, or **Making an Attack**.
+  API responses are fetched asynchronously and cached in memory for one hour;
+  Redis is not required for this command.
+
 ## requirements
 
 Some kind of IDE that is able to run python. I suggest Visual Studio Code (VSC).
@@ -85,6 +92,12 @@ See the requirements.txt for a list of python library dependencies.
 ```
 
 3. Press the play button for "Debug Bot" selection, or hit `F5` if you've already got it selected.
+
+### running tests
+
+```shell
+pytest
+```
 
 4. To stop the redis-server,
     - if using wsl, use the command `sudo service redis-server stop`
