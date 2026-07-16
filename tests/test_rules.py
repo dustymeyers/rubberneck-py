@@ -1,10 +1,14 @@
 from cogs.rules import (
+    EMPTY_REFERENCE_DESCRIPTION,
     RULE_PAGE_DESCRIPTION_LIMIT,
     Rules,
-    _build_autocomplete_index,
+    description_text,
+    format_reference_description,
     format_rule_description,
+    reference_embeds,
     split_description,
 )
+from service.reference_catalog import CONDITION, ReferenceEntry
 
 
 class TestRuleFormatting:
@@ -17,7 +21,7 @@ class TestRuleFormatting:
         assert all(len(chunk) <= 200 for chunk in chunks)
 
     def test_empty_description_has_fallback(self):
-        assert split_description("") == ["No description is available for this rule."]
+        assert split_description("") == [EMPTY_REFERENCE_DESCRIPTION]
 
     def test_default_pages_are_sized_for_readability(self):
         chunks = split_description(("Readable paragraph. " * 300).strip())
@@ -46,6 +50,17 @@ def test_rule_option_is_a_real_string_type_with_autocomplete():
     assert option.autocomplete is Rules.rule_autocomplete
 
 
+def test_rules_group_registers_only_unified_lookup():
+    commands = {command.name: command for command in Rules.rules.subcommands}
+
+    assert set(commands) == {"lookup"}
+    lookup_option = next(
+        option for option in commands["lookup"].options if option.name == "term"
+    )
+    assert lookup_option._raw_type is str
+    assert lookup_option.autocomplete is Rules.reference_autocomplete
+
+
 def test_rule_markdown_removes_duplicate_title_and_formats_headings():
     source = "# Making an Attack\n\nIntro text.\n\n#### Modifiers to the Roll\n\nDetails."
 
@@ -54,15 +69,34 @@ def test_rule_markdown_removes_duplicate_title_and_formats_headings():
     assert result == "Intro text.\n\n**Modifiers to the Roll**\n\nDetails."
 
 
-def test_autocomplete_index_supports_infix_search_without_runtime_filtering():
-    from service.api_client import ResourceReference
+def test_condition_description_lists_are_normalized():
+    assert description_text(["First effect.", "Second effect."]) == (
+        "First effect.\n\nSecond effect."
+    )
 
-    rules = [
-        ResourceReference("making-an-attack", "Making an Attack", "/rules/making-an-attack"),
-        ResourceReference("cover", "Cover", "/rules/cover"),
-    ]
 
-    index = _build_autocomplete_index(rules)
+def test_condition_embed_identifies_its_reference_type():
+    entry = ReferenceEntry(
+        "restrained",
+        "Restrained",
+        "/conditions/restrained",
+        CONDITION,
+    )
 
-    assert [choice.value for choice in index["attack"]] == ["making-an-attack"]
-    assert [choice.value for choice in index["cov"]] == ["cover"]
+    embed = reference_embeds(
+        entry,
+        {"name": "Restrained", "desc": ["Speed becomes 0.", "Attacks have disadvantage."]},
+    )[0]
+
+    assert embed.title == "Restrained — Condition"
+    assert "Speed becomes 0." in embed.description
+    assert "Condition" in embed.footer.text
+
+
+def test_reference_formatter_handles_list_markdown():
+    result = format_reference_description(
+        "Restrained",
+        ["# Restrained", "#### Effects", "Speed becomes 0."],
+    )
+
+    assert result == "**Effects**\n\nSpeed becomes 0."

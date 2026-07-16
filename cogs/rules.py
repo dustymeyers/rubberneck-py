@@ -1,39 +1,63 @@
-"""Slash commands for looking up rules in the D&D 5e SRD."""
+"""Slash commands for looking up D&D 5e SRD reference material."""
 
-from typing import Any
+import os
 import re
+from typing import Any
 
 import discord
+from discord.commands import SlashCommandGroup
 from discord.ext import commands
 from discord.ext.pages import Paginator
+from dotenv import load_dotenv
 
 from logger import logger
-from service.api_client import DnDAPI, DnDAPIError, ResourceNotFound, ResourceReference
+from service.api_client import DnDAPI, DnDAPIError, ResourceNotFound
+from service.reference_catalog import (
+    RULE,
+    ReferenceCatalog,
+    ReferenceEntry,
+    ReferenceType,
+)
 
 
-RULE_SECTIONS_ENDPOINT = "rule-sections"
-RULE_COMMAND_DESCRIPTION = "Look up a rule in the D&D 5e SRD."
+RULES_GROUP_DESCRIPTION = "Look up rules, conditions, and other SRD references."
+LOOKUP_COMMAND_DESCRIPTION = "Look up a rule or condition in the D&D 5e SRD."
+RULE_COMMAND_DESCRIPTION = "Look up a rule section in the D&D 5e SRD."
+REFERENCE_OPTION_DESCRIPTION = "Reference name, such as 'Cover' or 'Restrained'"
 RULE_OPTION_DESCRIPTION = "Rule name, such as 'Cover' or 'Making an Attack'"
+REFERENCE_NOT_FOUND_MESSAGE = (
+    "I couldn't find that SRD reference. Start typing the name and choose a suggestion."
+)
 RULE_NOT_FOUND_MESSAGE = (
     "I couldn't find that SRD rule. Start typing the name and choose a suggestion."
 )
-RULE_FOOTER = "D&D 5e SRD (2014) - dnd5eapi.co"
-DEFAULT_RULE_NAME = "SRD Rule"
-EMPTY_RULE_DESCRIPTION = "No description is available for this rule."
-# Sized for comfortable reading in a typical Discord desktop viewport rather
-# than Discord's much larger technical embed limit.
+SRD_NAME = "D&D 5e SRD (2014)"
+SOURCE_NAME = "dnd5eapi.co"
+LEGACY_RULE_HINT = "Tip: /rules lookup also searches conditions."
+DEFAULT_REFERENCE_NAME = "SRD Reference"
+EMPTY_REFERENCE_DESCRIPTION = "No description is available for this reference."
 RULE_PAGE_DESCRIPTION_LIMIT = 1400
-MAX_RULE_PAGES = 20
+MAX_REFERENCE_PAGES = 20
 PAGINATOR_TIMEOUT_SECONDS = 300
-DISCORD_AUTOCOMPLETE_LIMIT = 25
 
 
-def format_rule_description(name: str, text: str) -> str:
+load_dotenv()
+CONFIGURED_GUILD_ID = os.getenv("GUILD_ID")
+COMMAND_GUILD_IDS = [int(CONFIGURED_GUILD_ID)] if CONFIGURED_GUILD_ID else None
+
+
+def description_text(value: str | list[str] | None) -> str:
+    """Normalize API description shapes into one Markdown string."""
+    if isinstance(value, list):
+        return "\n\n".join(part.strip() for part in value if part.strip())
+    return value or ""
+
+
+def format_reference_description(name: str, value: str | list[str] | None) -> str:
     """Translate SRD Markdown into the subset Discord embeds render cleanly."""
-    text = text.replace("\r\n", "\n").strip()
+    text = description_text(value).replace("\r\n", "\n").strip()
     lines = text.splitlines()
 
-    # API descriptions often repeat the resource name as their first heading.
     if lines and lines[0].lstrip("# ").strip().casefold() == name.strip().casefold():
         lines = lines[1:]
         while lines and not lines[0].strip():
@@ -46,11 +70,16 @@ def format_rule_description(name: str, text: str) -> str:
     return "\n".join(formatted).strip()
 
 
+def format_rule_description(name: str, text: str) -> str:
+    """Compatibility wrapper for callers of the original rule formatter."""
+    return format_reference_description(name, text)
+
+
 def split_description(text: str, limit: int = RULE_PAGE_DESCRIPTION_LIMIT) -> list[str]:
     """Build readable pages while keeping headings with their first paragraph."""
     text = text.strip()
     if not text:
-        return [EMPTY_RULE_DESCRIPTION]
+        return [EMPTY_REFERENCE_DESCRIPTION]
 
     blocks = [block.strip() for block in re.split(r"\n\s*\n", text) if block.strip()]
     units: list[str] = []
@@ -106,41 +135,91 @@ def _split_oversized_unit(unit: str, limit: int) -> list[str]:
     return pieces
 
 
-def rule_embeds(rule: dict[str, Any]) -> list[discord.Embed]:
-    name = rule.get("name", DEFAULT_RULE_NAME)
-    descriptions = split_description(format_rule_description(name, rule.get("desc", "")))
+def reference_embeds(
+    entry: ReferenceEntry,
+    payload: dict[str, Any],
+    legacy_alias: bool = False,
+) -> list[discord.Embed]:
+    name = payload.get("name", entry.name or DEFAULT_REFERENCE_NAME)
+    text = format_reference_description(name, payload.get("desc"))
+    descriptions = split_description(text)
     embeds: list[discord.Embed] = []
     for number, description in enumerate(descriptions, start=1):
-        title = name if len(descriptions) == 1 else f"{name} ({number}/{len(descriptions)})"
-        embed = discord.Embed(title=title, description=description, color=discord.Colour.blurple())
-        embed.set_footer(text=RULE_FOOTER)
+        page = "" if len(descriptions) == 1 else f" ({number}/{len(descriptions)})"
+        embed = discord.Embed(
+            title=f"{name} — {entry.reference_type.label}{page}",
+            description=description,
+            color=discord.Colour.blurple(),
+        )
+        footer = f"{SRD_NAME} - {entry.reference_type.label} - {SOURCE_NAME}"
+        if legacy_alias:
+            footer = f"{footer} | {LEGACY_RULE_HINT}"
+        embed.set_footer(text=footer)
         embeds.append(embed)
-    return embeds[:MAX_RULE_PAGES]
+    return embeds[:MAX_REFERENCE_PAGES]
+
+
+def rule_embeds(rule: dict[str, Any]) -> list[discord.Embed]:
+    """Compatibility wrapper for the original rule embed helper."""
+    entry = ReferenceEntry(
+        index=rule.get("index", "rule"),
+        name=rule.get("name", DEFAULT_REFERENCE_NAME),
+        url=rule.get("url", ""),
+        reference_type=RULE,
+    )
+    return reference_embeds(entry, rule)
 
 
 class Rules(commands.Cog):
+    rules = SlashCommandGroup(
+        "rules",
+        RULES_GROUP_DESCRIPTION,
+        guild_ids=COMMAND_GUILD_IDS,
+    )
+
     def __init__(self, bot: commands.Bot, client: DnDAPI | None = None):
         self.bot = bot
         self.client = client or DnDAPI()
-        self.rules: list[ResourceReference] = []
-        self.autocomplete_index: dict[str, tuple[discord.OptionChoice, ...]] = {}
+        self.catalog = ReferenceCatalog(self.client)
 
-    async def load_rules(self) -> None:
+    async def load_references(self) -> None:
         try:
-            self.rules = await self.client.list_resources(RULE_SECTIONS_ENDPOINT)
-            self.autocomplete_index = _build_autocomplete_index(self.rules)
-            logger.info("Loaded %s SRD rule names for autocomplete", len(self.rules))
+            await self.catalog.load()
+            logger.info(
+                "Loaded %s SRD references for autocomplete",
+                len(self.catalog.entries),
+            )
         except DnDAPIError:
-            logger.exception("Could not preload SRD rule names")
+            logger.exception("Could not preload SRD references")
 
     @commands.Cog.listener()
     async def on_ready(self) -> None:
-        if not self.rules:
-            await self.load_rules()
+        if not self.catalog.entries:
+            await self.load_references()
 
-    async def rule_autocomplete(self, ctx: discord.AutocompleteContext) -> list[discord.OptionChoice]:
-        query = (ctx.value or "").strip().casefold()
-        return list(self.autocomplete_index.get(query, ()))
+    async def reference_autocomplete(
+        self,
+        ctx: discord.AutocompleteContext,
+    ) -> list[discord.OptionChoice]:
+        return self.catalog.choices(ctx.value or "")
+
+    async def rule_autocomplete(
+        self,
+        ctx: discord.AutocompleteContext,
+    ) -> list[discord.OptionChoice]:
+        return self.catalog.choices(ctx.value or "", RULE)
+
+    @rules.command(name="lookup", description=LOOKUP_COMMAND_DESCRIPTION)
+    async def lookup(
+        self,
+        ctx: discord.ApplicationContext,
+        term: discord.Option(
+            str,
+            REFERENCE_OPTION_DESCRIPTION,
+            autocomplete=reference_autocomplete,
+        ),
+    ) -> None:
+        await self._respond_with_reference(ctx, term)
 
     @discord.slash_command(name="rule", description=RULE_COMMAND_DESCRIPTION)
     async def rule(
@@ -152,10 +231,19 @@ class Rules(commands.Cog):
             autocomplete=rule_autocomplete,
         ),
     ) -> None:
+        await self._respond_with_reference(ctx, name, RULE, legacy_alias=True)
+
+    async def _respond_with_reference(
+        self,
+        ctx: discord.ApplicationContext,
+        term: str,
+        reference_type: ReferenceType | None = None,
+        legacy_alias: bool = False,
+    ) -> None:
         await ctx.defer()
         try:
-            rule = await self.client.get_resource(RULE_SECTIONS_ENDPOINT, name)
-            embeds = rule_embeds(rule)
+            entry, payload = await self.catalog.resolve(term, reference_type)
+            embeds = reference_embeds(entry, payload, legacy_alias=legacy_alias)
             if len(embeds) == 1:
                 await ctx.respond(embed=embeds[0])
             else:
@@ -166,40 +254,20 @@ class Rules(commands.Cog):
                 )
                 await paginator.respond(ctx.interaction, ephemeral=False)
         except ResourceNotFound:
-            await ctx.respond(RULE_NOT_FOUND_MESSAGE, ephemeral=True)
+            await ctx.respond(
+                self._not_found_message(reference_type),
+                ephemeral=True,
+            )
         except DnDAPIError as exc:
-            logger.error("Rule lookup failed: %s", exc, exc_info=True)
+            logger.error("SRD reference lookup failed: %s", exc, exc_info=True)
             await ctx.respond(str(exc), ephemeral=True)
+
+    @staticmethod
+    def _not_found_message(reference_type: ReferenceType | None) -> str:
+        if reference_type == RULE:
+            return RULE_NOT_FOUND_MESSAGE
+        return REFERENCE_NOT_FOUND_MESSAGE
 
 
 def setup(bot: commands.Bot) -> None:
     bot.add_cog(Rules(bot))
-
-
-def _build_autocomplete_index(
-    rules: list[ResourceReference],
-) -> dict[str, tuple[discord.OptionChoice, ...]]:
-    """Precompute every substring lookup used by Discord autocomplete."""
-    choices = {
-        rule.index: discord.OptionChoice(name=rule.name, value=rule.index)
-        for rule in rules
-    }
-    matches: dict[str, list[discord.OptionChoice]] = {"": list(choices.values())}
-
-    for rule in rules:
-        searchable = {rule.name.casefold(), rule.index.casefold()}
-        queries = {
-            value[start:end]
-            for value in searchable
-            for start in range(len(value))
-            for end in range(start + 1, len(value) + 1)
-        }
-        for query in queries:
-            bucket = matches.setdefault(query, [])
-            if len(bucket) < DISCORD_AUTOCOMPLETE_LIMIT:
-                bucket.append(choices[rule.index])
-
-    return {
-        query: tuple(results[:DISCORD_AUTOCOMPLETE_LIMIT])
-        for query, results in matches.items()
-    }

@@ -52,3 +52,21 @@ not perform network requests or runtime full-list filtering per keystroke.
 
 **Reason:** Discord autocomplete is latency-sensitive and already includes
 client/network debounce outside the bot's control.
+
+## 2026-07-16 — Unified Reference Catalog
+
+**Decision:** Rule sections and conditions are exposed through one typed catalog.
+Autocomplete values encode the resource type, while labels show it to the user.
+Additional reference endpoints are added through `ReferenceType` configuration.
+
+**Reason:** Users should not need to know which upstream API endpoint owns a
+term, and duplicate names must remain unambiguous without adding API clients.
+
+## 2026-07-16 — One Unified Lookup Command
+
+**Decision:** Expose `/rules lookup` as the only typed reference subcommand.
+Keep `/rule` temporarily as a compatibility alias, but do not add separate
+`/rules rule` and `/rules condition` commands.
+
+**Reason:** Typed autocomplete already identifies each result. Separate commands
+duplicate the unified lookup and require users to understand API categories.

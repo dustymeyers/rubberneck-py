@@ -9,6 +9,15 @@ I want to create a DnD 5e supporting discord bot which can make requests to dnd5
   to see matching rules such as **Cover**, **Resting**, or **Making an Attack**.
   API responses are fetched asynchronously and cached in memory for one hour;
   Redis is not required for this command.
+- `/rules lookup term` searches both rule sections and conditions.
+
+`/rule` remains available as a compatibility alias while the unified `/rules`
+commands evolve.
+
+When `GUILD_ID` is set in `.env`, the `/rules` group is registered directly to
+that development server so new commands and subcommands appear immediately.
+Without `GUILD_ID`, the group is registered globally and Discord may take time
+to propagate a newly created command.
 
 ## requirements
 

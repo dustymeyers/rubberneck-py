@@ -44,3 +44,26 @@ Agreed on the next reference milestones:
 
 Created this planning directory to preserve the roadmap, acceptance criteria,
 decisions, active tasks, and development history as Rubberneck evolves.
+
+## 2026-07-16 — Started Unified References
+
+Started Feature Block 1 by adding a typed reference catalog over the existing
+async API client. The first release combines rule sections and conditions,
+ranks exact matches ahead of prefix and substring matches, and precomputes
+typed autocomplete choices.
+
+Added `/rules lookup`, `/rules rule`, and `/rules condition`. The original
+`/rule` command remains as a compatibility alias and points users toward the
+unified lookup. A live API smoke test loaded 48 combined references and resolved
+`restrained` as a condition. Discord rendering still needs a manual integration
+check before the feature block can be marked complete.
+
+The first bot restart showed only the existing global `/rule` command even
+though logs confirmed Discord accepted `/rules` as an upsert. The group now uses
+the configured `GUILD_ID` for immediate development-server synchronization and
+falls back to global registration when no guild is configured.
+
+After testing both rule and condition lookups successfully in Discord, the
+command surface was simplified. `/rules rule` and `/rules condition` were
+removed as redundant; typed autocomplete makes `/rules lookup` sufficient.
+Feature Block 1 is complete, with `/rule` retained temporarily for compatibility.

@@ -27,7 +27,7 @@ Provide a reliable first vertical slice for looking up 2014 SRD rule sections.
 
 ## Feature Block 1: Unified Rules, Conditions, and Definitions
 
-**Status:** Planned — next priority
+**Status:** Complete
 
 Turn the current command into a broader reference that includes rule sections,
 conditions, and other short SRD definitions without requiring users to know how
@@ -36,26 +36,24 @@ the upstream API categorizes a term.
 ### Proposed Command Surface
 
 - `/rules lookup <term>` searches all supported reference types.
-- `/rules rule <name>` performs an explicit rule-section lookup.
-- `/rules condition <name>` performs an explicit condition lookup.
 
 The existing `/rule` command should remain temporarily as a compatibility alias
 and direct users toward `/rules lookup`.
 
 ### Acceptance Criteria
 
-- [ ] `/rules lookup restrained` returns the Restrained condition.
-- [ ] `/rules lookup cover` returns the Cover rule section.
-- [ ] Autocomplete combines supported resource types and labels ambiguous
+- [x] `/rules lookup restrained` returns the Restrained condition.
+- [x] `/rules lookup cover` returns the Cover rule section.
+- [x] Autocomplete combines supported resource types and labels ambiguous
   entries with their type.
-- [ ] Exact matches rank ahead of prefix and substring matches.
-- [ ] Results clearly identify their resource type and SRD version.
-- [ ] Condition descriptions render lists and headings cleanly.
-- [ ] Adding a new reference endpoint does not require creating another API
+- [x] Exact matches rank ahead of prefix and substring matches.
+- [x] Results clearly identify their resource type and SRD version.
+- [x] Condition descriptions render lists and headings cleanly.
+- [x] Adding a new reference endpoint does not require creating another API
   client.
-- [ ] `/rule` remains functional during the migration and provides a clear
+- [x] `/rule` remains functional during the migration and provides a clear
   transition path.
-- [ ] Tests cover cross-resource lookup, ranking, ambiguity, formatting, and
+- [x] Tests cover cross-resource lookup, ranking, ambiguity, formatting, and
   the compatibility alias.
 
 ## Feature Block 2: Full-Text Rules Search
