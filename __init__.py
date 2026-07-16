@@ -1,7 +1,5 @@
-from .bot import Rubberneck
-from .logger import setup_logger
+"""Rubberneck Discord bot project."""
 
-__all__ = [
-    'Rubberneck',
-    'setup_logger',
-]
+# This repository is run as an application rather than imported as an installed
+# package. Keep its root initializer side-effect free so tools such as pytest can
+# discover modules even though the repository directory contains a hyphen.
