@@ -3,6 +3,8 @@ from discord.ext import commands
 import os
 import discord
 
+from logger import logger
+
 
 load_dotenv()
 
@@ -10,7 +12,8 @@ TOKEN = os.getenv("DISCORD_BOT_TOKEN")
 
 cogs_list = [
     'bestiary',
-    'pagetest'
+    'pagetest',
+    'rules'
 ]
 
 # bot: Bot = Rubberneck(intents=discord.Intents.all())
@@ -22,7 +25,28 @@ async def ping(ctx):
     await ctx.respond("Pong!")
 @bot.event
 async def on_ready():
-    print(f'We have logged in as {bot.user}')
+    logger.info("Logged in as %s", bot.user)
+
+
+@bot.event
+async def on_application_command_error(ctx, error):
+    """Log command failures and ensure Discord receives a response."""
+    original = getattr(error, "original", error)
+    logger.error(
+        "Application command /%s failed: %s",
+        getattr(ctx.command, "qualified_name", "unknown"),
+        original,
+        exc_info=(type(original), original, original.__traceback__),
+    )
+
+    message = "Something went wrong while running that command. The error has been logged."
+    try:
+        if ctx.interaction.response.is_done():
+            await ctx.send_followup(message, ephemeral=True)
+        else:
+            await ctx.respond(message, ephemeral=True)
+    except discord.HTTPException:
+        logger.exception("Could not send the command error response to Discord")
 
 if __name__ == '__main__': # import cogs from cogs folder
     for extension in cogs_list:

@@ -1,9 +1,32 @@
 from .dnd_api_client import DnDAPIClient
 from models.monster import Monster
 from .redis_client import RedisClient
+from .api_client import DnDAPI, DnDAPIError, ResourceNotFound, ResourceReference
+from .reference_catalog import (
+    CONDITION,
+    REFERENCE_TYPES,
+    RULE,
+    ReferenceCatalog,
+    ReferenceEntry,
+    ReferenceType,
+)
+from .reference_search import InvalidSearchQuery, ReferenceSearchIndex, SearchResult
 
 __all__ = [
-    "DnDAPIClient", 
+    "DnDAPIClient",
     "Monster",
-    "RedisClient"
+    "RedisClient",
+    "DnDAPI",
+    "DnDAPIError",
+    "ResourceNotFound",
+    "ResourceReference",
+    "CONDITION",
+    "REFERENCE_TYPES",
+    "RULE",
+    "ReferenceCatalog",
+    "ReferenceEntry",
+    "ReferenceType",
+    "InvalidSearchQuery",
+    "ReferenceSearchIndex",
+    "SearchResult",
 ]
