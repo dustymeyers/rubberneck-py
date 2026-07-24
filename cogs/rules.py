@@ -2,7 +2,7 @@
 
 import os
 import re
-from typing import Any
+from typing import Annotated, Any
 
 import discord
 from discord.commands import SlashCommandGroup
@@ -261,11 +261,13 @@ class Rules(commands.Cog):
     async def lookup(
         self,
         ctx: discord.ApplicationContext,
-        term: discord.Option(
+        term: Annotated[
             str,
-            REFERENCE_OPTION_DESCRIPTION,
-            autocomplete=reference_autocomplete,
-        ),
+            discord.Option(
+                description=REFERENCE_OPTION_DESCRIPTION,
+                autocomplete=reference_autocomplete,
+            ),
+        ],
     ) -> None:
         await self._respond_with_reference(ctx, term)
 
@@ -273,7 +275,10 @@ class Rules(commands.Cog):
     async def search(
         self,
         ctx: discord.ApplicationContext,
-        text: discord.Option(str, SEARCH_OPTION_DESCRIPTION),
+        text: Annotated[
+            str,
+            discord.Option(description=SEARCH_OPTION_DESCRIPTION),
+        ],
     ) -> None:
         await ctx.defer()
         if not self.search_index.documents:
@@ -303,11 +308,13 @@ class Rules(commands.Cog):
     async def rule(
         self,
         ctx: discord.ApplicationContext,
-        name: discord.Option(
+        name: Annotated[
             str,
-            RULE_OPTION_DESCRIPTION,
-            autocomplete=rule_autocomplete,
-        ),
+            discord.Option(
+                description=RULE_OPTION_DESCRIPTION,
+                autocomplete=rule_autocomplete,
+            ),
+        ],
     ) -> None:
         await self._respond_with_reference(ctx, name, RULE, legacy_alias=True)
 
