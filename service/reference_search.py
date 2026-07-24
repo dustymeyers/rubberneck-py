@@ -118,7 +118,7 @@ def parse_query(query: str) -> tuple[str, tuple[str, ...]]:
     phrase = normalize_text(query)
     tokens = tuple(dict.fromkeys(phrase.split()))
     if (
-        len(query.strip()) < MIN_SEARCH_CHARACTERS
+        len(phrase) < MIN_SEARCH_CHARACTERS
         or not tokens
         or max(map(len, tokens)) < MIN_SEARCH_TOKEN_LENGTH
     ):
@@ -242,9 +242,15 @@ def _best_match(
     query_tokens: tuple[str, ...],
 ) -> tuple[int, int] | None:
     normalized, mapping = _normalize_with_mapping(text)
-    phrase_start = normalized.find(phrase)
-    if phrase_start >= 0:
-        return mapping[phrase_start], mapping[phrase_start + len(phrase) - 1] + 1
+    phrase_match = re.search(
+        rf"(?<!\w){re.escape(phrase)}(?!\w)",
+        normalized,
+    )
+    if phrase_match:
+        return (
+            mapping[phrase_match.start()],
+            mapping[phrase_match.end() - 1] + 1,
+        )
 
     for term in query_tokens:
         exact = re.search(rf"(?<!\w){re.escape(term)}(?!\w)", normalized)

@@ -1,5 +1,6 @@
 """Slash commands for looking up D&D 5e SRD reference material."""
 
+import asyncio
 import os
 import re
 from typing import Annotated, Any
@@ -52,6 +53,8 @@ RULE_PAGE_DESCRIPTION_LIMIT = 1400
 MAX_REFERENCE_PAGES = 20
 PAGINATOR_TIMEOUT_SECONDS = 300
 SEARCH_RESULTS_PER_PAGE = 5
+REFERENCE_LOAD_ATTEMPTS = 3
+REFERENCE_RETRY_DELAY_SECONDS = 2
 
 
 load_dotenv()
@@ -228,17 +231,37 @@ class Rules(commands.Cog):
         self.client = client or DnDAPI()
         self.catalog = ReferenceCatalog(self.client)
         self.search_index = ReferenceSearchIndex(self.client)
+        self._reference_load_lock = asyncio.Lock()
 
     async def load_references(self) -> None:
-        try:
-            await self.catalog.load()
-            await self.search_index.load(self.catalog.entries)
-            logger.info(
-                "Loaded %s SRD references for autocomplete and full-text search",
-                len(self.catalog.entries),
-            )
-        except DnDAPIError:
-            logger.exception("Could not preload SRD references")
+        async with self._reference_load_lock:
+            if self.catalog.entries and self.search_index.documents:
+                return
+            for attempt in range(1, REFERENCE_LOAD_ATTEMPTS + 1):
+                try:
+                    await self.catalog.load()
+                    await self.search_index.load(self.catalog.entries)
+                except DnDAPIError:
+                    if attempt == REFERENCE_LOAD_ATTEMPTS:
+                        logger.exception(
+                            "Could not preload SRD references after %s attempts",
+                            REFERENCE_LOAD_ATTEMPTS,
+                        )
+                        return
+                    logger.warning(
+                        "Could not preload SRD references "
+                        "(attempt %s/%s); retrying in %s seconds",
+                        attempt,
+                        REFERENCE_LOAD_ATTEMPTS,
+                        REFERENCE_RETRY_DELAY_SECONDS,
+                    )
+                    await asyncio.sleep(REFERENCE_RETRY_DELAY_SECONDS)
+                else:
+                    logger.info(
+                        "Loaded %s SRD references for autocomplete and full-text search",
+                        len(self.catalog.entries),
+                    )
+                    return
 
     @commands.Cog.listener()
     async def on_ready(self) -> None:
@@ -281,6 +304,8 @@ class Rules(commands.Cog):
         ],
     ) -> None:
         await ctx.defer()
+        if not self.search_index.documents:
+            await self.load_references()
         if not self.search_index.documents:
             await ctx.respond(SEARCH_NOT_READY_MESSAGE, ephemeral=True)
             return

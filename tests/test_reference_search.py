@@ -161,6 +161,31 @@ async def test_excerpt_highlights_matches_without_preserving_source_markdown():
 
 
 @pytest.mark.asyncio
+async def test_excerpt_ignores_query_inside_an_unrelated_longer_word():
+    description = (
+        "A counterattack is mentioned in an unrelated opening sentence. "
+        + ("Filler sentence. " * 30)
+        + "Later, an attack has advantage."
+    )
+    document = entry("attack", "Attack")
+    client = FakeSearchClient(
+        {
+            ("rule-sections", "attack"): {
+                "name": "Attack",
+                "desc": description,
+            }
+        }
+    )
+    index = ReferenceSearchIndex(client)
+    await index.load([document])
+
+    result = index.search("attack")[0]
+
+    assert "**attack** has advantage" in result.excerpt
+    assert "counterattack" not in result.excerpt
+
+
+@pytest.mark.asyncio
 async def test_result_limit_and_deterministic_title_tiebreak():
     entries = [entry(f"item-{number:02}", f"Item {number:02}") for number in range(25)]
     client = FakeSearchClient(
@@ -185,7 +210,7 @@ async def test_result_limit_and_deterministic_title_tiebreak():
     ]
 
 
-@pytest.mark.parametrize("query", ["", "a", "  !  "])
+@pytest.mark.parametrize("query", ["", "a", "  !  ", "!aa"])
 def test_short_or_empty_queries_are_rejected(query):
     index = ReferenceSearchIndex(FakeSearchClient({}))
 

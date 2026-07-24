@@ -66,12 +66,36 @@ async def test_load_references_builds_catalog_and_search_index(cog):
 async def test_load_references_logs_api_failure_without_raising(cog, monkeypatch):
     cog.catalog.load.side_effect = DnDAPIError("offline")
     exception = MagicMock()
+    warning = MagicMock()
+    sleep = AsyncMock()
     monkeypatch.setattr(rules_module.logger, "exception", exception)
+    monkeypatch.setattr(rules_module.logger, "warning", warning)
+    monkeypatch.setattr(rules_module.asyncio, "sleep", sleep)
 
     await cog.load_references()
 
-    exception.assert_called_once_with("Could not preload SRD references")
+    assert cog.catalog.load.await_count == rules_module.REFERENCE_LOAD_ATTEMPTS
+    assert warning.call_count == rules_module.REFERENCE_LOAD_ATTEMPTS - 1
+    assert sleep.await_count == rules_module.REFERENCE_LOAD_ATTEMPTS - 1
+    exception.assert_called_once_with(
+        "Could not preload SRD references after %s attempts",
+        rules_module.REFERENCE_LOAD_ATTEMPTS,
+    )
     cog.search_index.load.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_load_references_recovers_from_transient_failure(cog, monkeypatch):
+    cog.catalog.entries = [search_result().entry]
+    cog.catalog.load.side_effect = [DnDAPIError("offline"), None]
+    sleep = AsyncMock()
+    monkeypatch.setattr(rules_module.asyncio, "sleep", sleep)
+
+    await cog.load_references()
+
+    assert cog.catalog.load.await_count == 2
+    sleep.assert_awaited_once_with(rules_module.REFERENCE_RETRY_DELAY_SECONDS)
+    cog.search_index.load.assert_awaited_once_with(cog.catalog.entries)
 
 
 @pytest.mark.asyncio
@@ -121,9 +145,12 @@ async def test_lookup_and_legacy_rule_delegate_with_correct_scope(cog, ctx):
 
 @pytest.mark.asyncio
 async def test_search_reports_index_not_ready(cog, ctx):
+    cog.load_references = AsyncMock()
+
     await Rules.search.callback(cog, ctx, "hidden")
 
     ctx.defer.assert_awaited_once_with()
+    cog.load_references.assert_awaited_once_with()
     ctx.respond.assert_awaited_once_with(SEARCH_NOT_READY_MESSAGE, ephemeral=True)
 
 
