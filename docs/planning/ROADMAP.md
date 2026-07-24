@@ -58,7 +58,7 @@ and direct users toward `/rules lookup`.
 
 ## Feature Block 2: Full-Text Rules Search
 
-**Status:** Planned
+**Status:** Complete
 
 Allow users to find a rule when they remember a concept or phrase but not the
 official title.
@@ -69,16 +69,16 @@ official title.
 
 ### Acceptance Criteria
 
-- [ ] A query such as `attack while hidden` finds relevant unseen-attacker
+- [x] A query such as `attack while hidden` finds relevant unseen-attacker
   rules even when the phrase is not a title.
-- [ ] Search covers every resource supported by `/rules lookup`.
-- [ ] Results rank title matches above description-only matches.
-- [ ] Results display a short excerpt containing or surrounding the match.
-- [ ] Matching terms are emphasized without breaking Discord Markdown.
-- [ ] Results are paginated and capped to a documented maximum.
-- [ ] Empty, very short, and no-result queries receive useful guidance.
-- [ ] Search runs locally against cached/indexed SRD content after startup.
-- [ ] Tests cover ranking, excerpts, highlighting, result limits, and no-result
+- [x] Search covers every resource supported by `/rules lookup`.
+- [x] Results rank title matches above description-only matches.
+- [x] Results display a short excerpt containing or surrounding the match.
+- [x] Matching terms are emphasized without breaking Discord Markdown.
+- [x] Results are paginated and capped to a documented maximum.
+- [x] Empty, very short, and no-result queries receive useful guidance.
+- [x] Search runs locally against cached/indexed SRD content after startup.
+- [x] Tests cover ranking, excerpts, highlighting, result limits, and no-result
   behavior.
 
 ## Feature Block 3: Related-Rule Navigation
@@ -86,9 +86,24 @@ official title.
 **Status:** Planned
 
 Make it easy to move between concepts commonly referenced together during play.
+Search results should also act as a navigable discovery surface rather than a
+dead-end summary.
+
+### Proposed Interaction Flow
+
+- A user runs `/rules search <text>`.
+- The user chooses one of the displayed results without retyping its title.
+- The response opens that result's complete reference text using the standard
+  lookup formatting and pagination.
+- Back navigation returns to the same search query and result page.
 
 ### Acceptance Criteria
 
+- [ ] Each search result provides a direct way to open its full reference text.
+- [ ] Opening a search result reuses lookup formatting and long-text pagination.
+- [ ] Back navigation restores the originating search query and result page.
+- [ ] Search-to-reference navigation edits one response instead of creating
+  additional channel messages.
 - [ ] Rule responses can display relevant related rules or conditions.
 - [ ] A user can navigate to a related entry without typing a new command.
 - [ ] Navigation edits or paginates one response instead of flooding a channel.
@@ -108,6 +123,8 @@ are stable.
 
 ### Candidate Features
 
+- Autocomplete responsiveness improvements based on measured callback and
+  end-to-end latency.
 - `/rules list [topic]` for browsing by category.
 - `/rules compare <first> <second>` for side-by-side concepts.
 - `/rules random` for discovery.
@@ -117,6 +134,16 @@ are stable.
 
 ### Acceptance Criteria
 
+- [ ] Autocomplete latency is measured separately for local callback execution
+  and the end-to-end Discord interaction.
+- [ ] Warm autocomplete callbacks meet a documented response-time target for
+  representative exact, prefix, substring, and no-result queries.
+- [ ] Autocomplete performs no network requests or full-catalog scans per
+  keystroke.
+- [ ] Index construction time and memory use are measured before choosing
+  whether to retain or replace the precomputed substring index.
+- [ ] User-facing guidance documents any irreducible Discord client debounce or
+  platform delay discovered during testing.
 - [ ] Each selected candidate receives its own scoped acceptance criteria before
   implementation begins.
 - [ ] Commands share lookup, formatting, caching, and pagination services.

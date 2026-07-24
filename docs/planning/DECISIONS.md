@@ -70,3 +70,52 @@ Keep `/rule` temporarily as a compatibility alias, but do not add separate
 
 **Reason:** Typed autocomplete already identifies each result. Separate commands
 duplicate the unified lookup and require users to understand API categories.
+
+## 2026-07-23 — Deterministic Local Full-Text Search
+
+**Decision:** `/rules search` uses a local, immutable index of every reference
+title and fully loaded description. `/rules lookup` keeps its existing
+title-based resolution semantics.
+
+Queries and indexed text use Unicode NFKC normalization, case folding, and
+collapsed whitespace. Words are sequences of Unicode letters or numbers;
+punctuation, underscores, and hyphens are token boundaries. Repeated query
+terms are discarded for term scoring while their original order remains
+significant for full-phrase matching. Markdown syntax is excluded from indexed
+text so formatting characters do not create matches.
+
+Eligible results must match the normalized full phrase or every distinct query
+term. A term matches an entire token first and may otherwise match a token
+prefix; arbitrary within-word substring matching is not used. Results receive
+these additive weights:
+
+- exact normalized title: 2,000
+- full query phrase in the title: 1,000
+- every query term matched in the title: 500
+- each exact title term: 100
+- each title-prefix term: 50
+- full query phrase in the description: 400
+- every query term matched in the description: 200
+- each exact description term: 20
+- each description-prefix term: 10
+
+Ties sort by normalized title, resource type, and resource index so results are
+stable. A term is scored only by its best match in each field.
+
+Each result shows an excerpt of at most 300 visible characters. The excerpt is
+centered on the highest-value description match, prefers complete sentence or
+paragraph boundaries when they fit, and uses ellipses when either edge is
+trimmed. If only the title matches, the excerpt begins with the description's
+first complete sentence. Matching is computed on plain text; emphasis is added
+after excerpt selection by escaping existing Discord Markdown and then wrapping
+matched spans in bold markers.
+
+After trimming, a query must contain at least three visible characters and at
+least one token of two or more characters. Search returns at most 20 results,
+with five results per paginator page. Empty and shorter queries receive guidance
+instead of running a search.
+
+**Reason:** A small SRD corpus favors transparent, testable ranking over a
+database search dependency. Requiring all terms keeps results relevant, prefix
+matching tolerates remembered word endings, and bounded excerpts and result
+pages remain readable during play.

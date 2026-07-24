@@ -3,33 +3,33 @@
 Keep this file tactical. Detailed product intent and completion requirements
 belong in `ROADMAP.md`.
 
-## Next: Full-Text Rules Search
+## Completed: Full-Text Rules Search
 
 ### Design
 
-- [ ] Define tokenization and normalization rules for search queries.
-- [ ] Define title, exact-phrase, all-term, and partial-term ranking weights.
-- [ ] Define excerpt length and match-context behavior.
-- [ ] Decide the minimum useful query length and maximum result count.
+- [x] Define tokenization and normalization rules for search queries.
+- [x] Define title, exact-phrase, all-term, and partial-term ranking weights.
+- [x] Define excerpt length and match-context behavior.
+- [x] Decide the minimum useful query length and maximum result count.
 
 ### Implementation
 
-- [ ] Load full descriptions for every catalog entry into a local search index.
-- [ ] Add `/rules search <text>` without changing `/rules lookup` semantics.
-- [ ] Rank title matches ahead of description-only matches.
-- [ ] Generate concise excerpts around matching text.
-- [ ] Emphasize matches without corrupting existing Markdown.
-- [ ] Paginate search results in a single Discord response.
-- [ ] Handle empty, short, and no-result queries with useful guidance.
+- [x] Load full descriptions for every catalog entry into a local search index.
+- [x] Add `/rules search <text>` without changing `/rules lookup` semantics.
+- [x] Rank title matches ahead of description-only matches.
+- [x] Generate concise excerpts around matching text.
+- [x] Emphasize matches without corrupting existing Markdown.
+- [x] Paginate search results in a single Discord response.
+- [x] Handle empty, short, and no-result queries with useful guidance.
 
 ### Verification
 
-- [ ] Add ranking and exact-phrase tests.
-- [ ] Add excerpt-boundary and highlighting tests.
-- [ ] Add result-limit and no-result tests.
-- [ ] Confirm search performs no network requests after indexing completes.
-- [ ] Manually verify `/rules search attack while hidden` in Discord.
-- [ ] Confirm every acceptance criterion in Roadmap Feature Block 2.
+- [x] Add ranking and exact-phrase tests.
+- [x] Add excerpt-boundary and highlighting tests.
+- [x] Add result-limit and no-result tests.
+- [x] Confirm search performs no network requests after indexing completes.
+- [x] Manually verify `/rules search attack while hidden` in Discord.
+- [x] Confirm every acceptance criterion in Roadmap Feature Block 2.
 
 ## Completed: Unified Rules, Conditions, and Definitions
 
@@ -62,8 +62,36 @@ belong in `ROADMAP.md`.
 - [x] Manually verify autocomplete and response rendering in Discord.
 - [x] Confirm every acceptance criterion in Roadmap Feature Block 1.
 
+## Next: Search and Related-Rule Navigation
+
+### Design
+
+- [ ] Choose the Discord control used to select a search result.
+- [ ] Define navigation state for query, search page, selected reference, and
+  reference page.
+- [ ] Define how related references are stored and ranked.
+- [ ] Define interaction ownership and expired-control behavior.
+
+### Implementation
+
+- [ ] Let a user open a full reference directly from `/rules search` results.
+- [ ] Reuse lookup formatting and pagination for the selected reference.
+- [ ] Add back navigation to the originating search result page.
+- [ ] Keep search, reference, and related-rule navigation in one response.
+- [ ] Display deterministic related rules or conditions on reference responses.
+- [ ] Handle missing related resources without breaking navigation.
+
+### Verification
+
+- [ ] Add search-result selection and full-reference tests.
+- [ ] Add forward, back, and page-state restoration tests.
+- [ ] Add missing-relation, expired-control, and interaction-ownership tests.
+- [ ] Manually verify search-to-reference-to-search navigation in Discord.
+- [ ] Confirm every acceptance criterion in Roadmap Feature Block 3.
+
 ## Maintenance Backlog
 
+- [ ] Profile and optimize autocomplete callback and end-to-end latency.
 - [ ] Modernize the legacy bestiary cog using the generic async API client.
 - [ ] Make Redis optional for every command, not only `/rule`.
 - [ ] Remove or isolate the paginator demonstration cog from production startup.
