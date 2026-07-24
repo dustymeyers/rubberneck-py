@@ -10,6 +10,9 @@ I want to create a DnD 5e supporting discord bot which can make requests to dnd5
   API responses are fetched asynchronously and cached in memory for one hour;
   Redis is not required for this command.
 - `/rules lookup term` searches both rule sections and conditions.
+- `/rules search text` searches inside locally indexed rule and condition
+  descriptions. Queries require at least three characters and return up to 20
+  ranked results in one paginated response.
 
 `/rule` remains available as a compatibility alias while the unified `/rules`
 commands evolve.

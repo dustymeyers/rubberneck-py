@@ -18,18 +18,30 @@ from service.reference_catalog import (
     ReferenceEntry,
     ReferenceType,
 )
+from service.reference_search import (
+    InvalidSearchQuery,
+    ReferenceSearchIndex,
+    SearchResult,
+)
 
 
 RULES_GROUP_DESCRIPTION = "Look up rules, conditions, and other SRD references."
 LOOKUP_COMMAND_DESCRIPTION = "Look up a rule or condition in the D&D 5e SRD."
+SEARCH_COMMAND_DESCRIPTION = "Search inside SRD rule and condition descriptions."
 RULE_COMMAND_DESCRIPTION = "Look up a rule section in the D&D 5e SRD."
 REFERENCE_OPTION_DESCRIPTION = "Reference name, such as 'Cover' or 'Restrained'"
+SEARCH_OPTION_DESCRIPTION = "Words or a phrase, such as 'attack while hidden'"
 RULE_OPTION_DESCRIPTION = "Rule name, such as 'Cover' or 'Making an Attack'"
 REFERENCE_NOT_FOUND_MESSAGE = (
     "I couldn't find that SRD reference. Start typing the name and choose a suggestion."
 )
 RULE_NOT_FOUND_MESSAGE = (
     "I couldn't find that SRD rule. Start typing the name and choose a suggestion."
+)
+SEARCH_NOT_READY_MESSAGE = "The local SRD search index is not ready yet. Try again shortly."
+NO_SEARCH_RESULTS_MESSAGE = (
+    "I couldn't find that text in the indexed SRD references. "
+    "Try fewer or more specific words."
 )
 SRD_NAME = "D&D 5e SRD (2014)"
 SOURCE_NAME = "dnd5eapi.co"
@@ -39,6 +51,7 @@ EMPTY_REFERENCE_DESCRIPTION = "No description is available for this reference."
 RULE_PAGE_DESCRIPTION_LIMIT = 1400
 MAX_REFERENCE_PAGES = 20
 PAGINATOR_TIMEOUT_SECONDS = 300
+SEARCH_RESULTS_PER_PAGE = 5
 
 
 load_dotenv()
@@ -170,6 +183,39 @@ def rule_embeds(rule: dict[str, Any]) -> list[discord.Embed]:
     return reference_embeds(entry, rule)
 
 
+def search_result_embeds(
+    query: str,
+    results: list[SearchResult],
+) -> list[discord.Embed]:
+    """Group ranked search results into compact paginator pages."""
+    pages: list[discord.Embed] = []
+    chunks = [
+        results[index : index + SEARCH_RESULTS_PER_PAGE]
+        for index in range(0, len(results), SEARCH_RESULTS_PER_PAGE)
+    ]
+    for page_number, chunk in enumerate(chunks, start=1):
+        page = "" if len(chunks) == 1 else f" ({page_number}/{len(chunks)})"
+        embed = discord.Embed(
+            title=f'SRD search: "{query[:100]}"{page}',
+            color=discord.Colour.blurple(),
+        )
+        offset = (page_number - 1) * SEARCH_RESULTS_PER_PAGE
+        for position, result in enumerate(chunk, start=offset + 1):
+            embed.add_field(
+                name=(
+                    f"{position}. {result.entry.name} "
+                    f"— {result.entry.reference_type.label}"
+                ),
+                value=result.excerpt,
+                inline=False,
+            )
+        embed.set_footer(
+            text=f"{SRD_NAME} - {len(results)} result(s) - {SOURCE_NAME}"
+        )
+        pages.append(embed)
+    return pages
+
+
 class Rules(commands.Cog):
     rules = SlashCommandGroup(
         "rules",
@@ -181,12 +227,14 @@ class Rules(commands.Cog):
         self.bot = bot
         self.client = client or DnDAPI()
         self.catalog = ReferenceCatalog(self.client)
+        self.search_index = ReferenceSearchIndex(self.client)
 
     async def load_references(self) -> None:
         try:
             await self.catalog.load()
+            await self.search_index.load(self.catalog.entries)
             logger.info(
-                "Loaded %s SRD references for autocomplete",
+                "Loaded %s SRD references for autocomplete and full-text search",
                 len(self.catalog.entries),
             )
         except DnDAPIError:
@@ -194,7 +242,7 @@ class Rules(commands.Cog):
 
     @commands.Cog.listener()
     async def on_ready(self) -> None:
-        if not self.catalog.entries:
+        if not self.catalog.entries or not self.search_index.documents:
             await self.load_references()
 
     async def reference_autocomplete(
@@ -220,6 +268,36 @@ class Rules(commands.Cog):
         ),
     ) -> None:
         await self._respond_with_reference(ctx, term)
+
+    @rules.command(name="search", description=SEARCH_COMMAND_DESCRIPTION)
+    async def search(
+        self,
+        ctx: discord.ApplicationContext,
+        text: discord.Option(str, SEARCH_OPTION_DESCRIPTION),
+    ) -> None:
+        await ctx.defer()
+        if not self.search_index.documents:
+            await ctx.respond(SEARCH_NOT_READY_MESSAGE, ephemeral=True)
+            return
+        try:
+            results = self.search_index.search(text)
+        except InvalidSearchQuery as exc:
+            await ctx.respond(str(exc), ephemeral=True)
+            return
+        if not results:
+            await ctx.respond(NO_SEARCH_RESULTS_MESSAGE, ephemeral=True)
+            return
+
+        embeds = search_result_embeds(text, results)
+        if len(embeds) == 1:
+            await ctx.respond(embed=embeds[0])
+        else:
+            paginator = Paginator(
+                pages=embeds,
+                show_disabled=False,
+                timeout=PAGINATOR_TIMEOUT_SECONDS,
+            )
+            await paginator.respond(ctx.interaction, ephemeral=False)
 
     @discord.slash_command(name="rule", description=RULE_COMMAND_DESCRIPTION)
     async def rule(

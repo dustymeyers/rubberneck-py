@@ -6,9 +6,11 @@ from cogs.rules import (
     format_reference_description,
     format_rule_description,
     reference_embeds,
+    search_result_embeds,
     split_description,
 )
-from service.reference_catalog import CONDITION, ReferenceEntry
+from service.reference_catalog import CONDITION, RULE, ReferenceEntry
+from service.reference_search import SearchResult
 
 
 class TestRuleFormatting:
@@ -50,15 +52,20 @@ def test_rule_option_is_a_real_string_type_with_autocomplete():
     assert option.autocomplete is Rules.rule_autocomplete
 
 
-def test_rules_group_registers_only_unified_lookup():
+def test_rules_group_registers_lookup_and_search():
     commands = {command.name: command for command in Rules.rules.subcommands}
 
-    assert set(commands) == {"lookup"}
+    assert set(commands) == {"lookup", "search"}
     lookup_option = next(
         option for option in commands["lookup"].options if option.name == "term"
     )
     assert lookup_option._raw_type is str
     assert lookup_option.autocomplete is Rules.reference_autocomplete
+    search_option = next(
+        option for option in commands["search"].options if option.name == "text"
+    )
+    assert search_option._raw_type is str
+    assert search_option.autocomplete is None
 
 
 def test_rule_markdown_removes_duplicate_title_and_formats_headings():
@@ -100,3 +107,27 @@ def test_reference_formatter_handles_list_markdown():
     )
 
     assert result == "**Effects**\n\nSpeed becomes 0."
+
+
+def test_search_results_are_grouped_five_per_page():
+    results = [
+        SearchResult(
+            ReferenceEntry(
+                f"rule-{number}",
+                f"Rule {number}",
+                f"/rule-sections/rule-{number}",
+                RULE,
+            ),
+            score=100 - number,
+            excerpt="A matching excerpt.",
+        )
+        for number in range(7)
+    ]
+
+    embeds = search_result_embeds("matching", results)
+
+    assert len(embeds) == 2
+    assert len(embeds[0].fields) == 5
+    assert len(embeds[1].fields) == 2
+    assert embeds[0].fields[0].name == "1. Rule 0 — Rule"
+    assert embeds[1].fields[0].name == "6. Rule 5 — Rule"
