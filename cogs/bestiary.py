@@ -1,3 +1,10 @@
+"""Legacy bestiary commands.
+
+WIP: This cog is retained for later modernization and may not match the current
+API client or ``Monster`` model. In particular, verify whether monster results
+use model attributes or mapping keys before relying on these commands.
+"""
+
 from logging import Logger
 import os
 from typing import List
@@ -104,8 +111,9 @@ class Bestiary(commands.Cog):
                 if monster is None:
                     continue
                 else:
-                    self.logger.debug(f"Adding monster {monster.name} to embed")
-                    embed.add_field(name=monster.name, value=monster.url, inline=True)
+                    # I don't think this is right. Technically Monster is a class, not just a dict
+                    self.logger.debug(f"Adding monster {monster['name']} to embed")
+                    embed.add_field(name=monster['name'], value=monster['url'], inline=True)
         except Exception as e:
             raise e
         
@@ -113,4 +121,3 @@ class Bestiary(commands.Cog):
 
 def setup(bot):
     bot.add_cog(Bestiary(bot))
-    
