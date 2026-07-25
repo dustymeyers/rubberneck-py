@@ -152,14 +152,15 @@ are stable.
 - [ ] User preferences have documented defaults and do not surprise a server.
 - [ ] Public responses remain concise enough for active play channels.
 
-## Feature Block 5: Searchable Bestiary and Encounter Data
+## Feature Block 5: Reusable Catalog Foundation and Searchable Bestiary
 
 **Status:** Planned
 
-Build a reusable local monster catalog that is useful during play on its own
-and becomes the authoritative monster-data source for random encounter
-generation. This expands the modern `/monster` and `/monsters` foundation
-without coupling bestiary search to the future generator engine.
+Build a reusable local catalog framework, then prove it with monsters. The
+monster catalog should be useful during play on its own and become the
+authoritative monster-data source for random encounter generation. This expands
+the modern `/monster` and `/monsters` foundation without coupling bestiary
+search to the future generator engine.
 
 ### Proposed Command Surface
 
@@ -175,6 +176,17 @@ The existing `/monster` lookup remains the focused singular command.
 
 ### Catalog and Data Features
 
+- A generic searchable catalog package shared by monsters, items, spells, and
+  character-option resources.
+- A small common record base or protocol for identity, display name, source,
+  API index, and provenance.
+- Resource adapters that normalize endpoint-specific payloads into typed
+  records without putting Discord presentation inside data models.
+- Shared query, ordering, filtering, autocomplete, seeded selection,
+  pagination, and error-result primitives imported by each resource feature.
+- Existing standard-library or maintained third-party packages are evaluated
+  before custom infrastructure is added; external dependencies stay behind
+  project-owned interfaces so they can be tested or replaced.
 - A typed in-memory monster record containing identity, challenge rating, XP,
   type, size, alignment, movement, and other generator-relevant fields.
 - A locally searchable index loaded once from the SRD API rather than making an
@@ -197,12 +209,21 @@ The existing `/monster` lookup remains the focused singular command.
   reference without retyping its name.
 - [ ] Search and autocomplete run locally after startup with no API request per
   interaction.
+- [ ] The reusable catalog framework is generic over typed records and does not
+  contain monster-specific branches.
+- [ ] Shared behavior uses composition, protocols, or shallow inheritance;
+  resource-specific adapters own only parsing, filters, and display metadata.
+- [ ] Catalog, filtering, and paginator implementations live in reusable
+  packages and are imported rather than copied into each cog.
+- [ ] New dependencies document the duplicated code they replace, their
+  maintenance health, and why the standard library or current packages are
+  insufficient.
 - [ ] Monster payloads are normalized into typed records before indexing.
 - [ ] Environment or encounter tags are editable independently of command code
   and are clearly distinguished from SRD-sourced fields.
 - [ ] Monsters without project-authored environment tags remain discoverable
   unless an environment filter is explicitly applied.
-- [ ] The catalog exposes a reusable filtered result set for Block 6 encounter
+- [ ] The catalog exposes a reusable filtered result set for Block 7 encounter
   generation rather than embedding generator rules in Discord commands.
 - [ ] Random selection can be seeded for deterministic tests and does not claim
   to produce a balanced encounter.
@@ -211,7 +232,69 @@ The existing `/monster` lookup remains the focused singular command.
 - [ ] Tests cover normalization, fractional CR values, combined filters,
   ordering, pagination, detail navigation, provenance, and seeded selection.
 
-## Feature Block 6: Game-Master Generators
+## Feature Block 6: Items and Character Compendium
+
+**Status:** Planned
+
+Expand the Block 5 catalog framework across the other SRD resources players and
+game masters routinely browse. Equipment becomes the authoritative item source
+for shops and loot, while spells and character options form a unified
+character-reference compendium.
+
+### Proposed Command Surface
+
+- `/item <name>` and `/items search [name] [category] [cost] [rarity]`
+- `/spell <name>` and `/spells search [class] [level] [school] [ritual]`
+- `/class <name>` and `/classes list`
+- `/subclass <name>` and `/subclasses list [class]`
+- `/background <name>` and `/backgrounds list`
+- `/species lookup <name>` and `/species list` for species/races
+- `/feat <name>` and `/feats search [name] [prerequisite]`
+
+Singular commands provide direct lookup. Plural commands provide browsing,
+search, comparison, and filtering. User-facing copy should say "species" while
+retaining compatibility with upstream API fields or searches that use "race."
+
+### Resource Features
+
+- Items and equipment: weapons, armor, adventuring gear, tools, mounts,
+  vehicles, magic items, category, cost, weight, mechanical properties, rarity
+  when available, and project-authored shop/settlement tags.
+- Spells: level, school, casting time, range, duration, concentration, ritual,
+  components, damage/healing metadata, and class availability.
+- Classes and subclasses: hit die, proficiencies, saving throws, levels,
+  features, spellcasting, and parent-class relationships.
+- Backgrounds: proficiencies, languages, equipment, features, and suggested
+  characteristics.
+- Species/races and subraces: size, speed, traits, languages, bonuses, and
+  parent-child relationships.
+- Feats: prerequisites, benefits, and relationships to referenced rules or
+  character options.
+
+### Acceptance Criteria
+
+- [ ] Every resource family uses the Block 5 generic catalog and API client
+  rather than introducing a parallel cache or search implementation.
+- [ ] Each endpoint has a typed record and adapter with explicit handling for
+  missing or version-dependent fields.
+- [ ] Lookup, autocomplete, filter semantics, result navigation, provenance,
+  and error handling are consistent across resource families.
+- [ ] Items support reusable filters and tags needed by Block 7 shop and loot
+  generators without embedding shop-generation logic in item commands.
+- [ ] Spell searches support combinable class, level, school, ritual, and
+  concentration filters.
+- [ ] Classes, subclasses, species/subraces, and related features preserve
+  their parent-child relationships for navigation.
+- [ ] "Species" and legacy "race" terminology resolve to the same underlying
+  SRD resources without duplicating records.
+- [ ] Resource-specific formatters compose shared embed and pagination helpers
+  while retaining fields appropriate to that resource.
+- [ ] Adding another SRD endpoint requires an adapter, typed record, filter
+  specification, and formatter—not another API client or copied cog framework.
+- [ ] Tests share reusable contract suites for every catalog adapter and add
+  focused coverage for resource-specific normalization and filters.
+
+## Feature Block 7: Game-Master Generators
 
 **Status:** Planned — later phase
 
@@ -221,8 +304,10 @@ Build a reusable weighted-table engine before implementing separate generators.
 
 - Random encounters using the Block 5 monster catalog, filtered by environment
   and party parameters.
-- Shop inventories filtered by settlement and shop type.
-- Loot tables filtered by tier, source, and theme.
+- Shop inventories using the Block 6 item catalog, filtered by settlement and
+  shop type.
+- Loot tables using the Block 6 item catalog, filtered by tier, source, and
+  theme.
 
 ### Acceptance Criteria
 
@@ -233,4 +318,6 @@ Build a reusable weighted-table engine before implementing separate generators.
 - [ ] Encounter, shop, and loot commands share the same generation engine.
 - [ ] Encounter generation consumes the searchable bestiary service rather
   than maintaining a second monster list or fetching monsters per request.
+- [ ] Shop and loot generation consume the shared item catalog rather than
+  maintaining separate equipment arrays.
 - [ ] SRD/API-derived content is distinguishable from project-authored tables.
