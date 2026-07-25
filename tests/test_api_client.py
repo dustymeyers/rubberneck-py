@@ -3,7 +3,6 @@ import pytest
 from rubberneck.services.api_client import (
     DnDAPI,
     ResourceNotFound,
-    canonical_srd_url,
 )
 
 
@@ -94,28 +93,3 @@ class TestDnDAPI:
 
         with pytest.raises(ResourceNotFound):
             await client.get_resource("rule-sections", "not-real")
-
-
-@pytest.mark.parametrize(
-    ("path", "expected"),
-    [
-        (
-            "/api/2014/rule-sections/cover",
-            "https://www.dnd5eapi.co/api/2014/rule-sections/cover",
-        ),
-        (
-            "/conditions/restrained",
-            "https://www.dnd5eapi.co/api/2014/conditions/restrained",
-        ),
-        (
-            "https://www.dnd5eapi.co/api/2014/monsters/owlbear",
-            "https://www.dnd5eapi.co/api/2014/monsters/owlbear",
-        ),
-        ("/api/rule-sections/cover", None),
-        ("https://example.com/api/2014/rule-sections/cover", None),
-        ("", None),
-        (None, None),
-    ],
-)
-def test_canonical_srd_url_accepts_only_stable_versioned_sources(path, expected):
-    assert canonical_srd_url(path) == expected

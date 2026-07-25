@@ -70,13 +70,13 @@ def test_rules_group_registers_lookup_search_and_list():
     )
     assert search_option._raw_type is str
     assert search_option.autocomplete is None
-    topic_option = next(
-        option for option in commands["list"].options if option.name == "topic"
+    type_option = next(
+        option for option in commands["list"].options if option.name == "type"
     )
-    assert [choice.value for choice in topic_option.choices] == [
-        "all",
-        "rules",
-        "conditions",
+    assert [(choice.name, choice.value) for choice in type_option.choices] == [
+        ("All references", "all"),
+        ("Rule sections", "rules"),
+        ("Conditions", "conditions"),
     ]
 
 
@@ -113,7 +113,7 @@ def test_condition_embed_identifies_its_reference_type():
     )[0]
 
     assert embed.title == "Restrained — Condition"
-    assert embed.url == "https://www.dnd5eapi.co/api/2014/conditions/restrained"
+    assert embed.url is None
     assert "Speed becomes 0." in embed.description
     assert "Condition" in embed.footer.text
 

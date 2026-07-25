@@ -17,7 +17,6 @@ from rubberneck.services.api_client import (
     DnDAPI,
     DnDAPIError,
     ResourceNotFound,
-    canonical_srd_url,
 )
 from rubberneck.services.reference_catalog import (
     CONDITION,
@@ -40,7 +39,7 @@ LIST_COMMAND_DESCRIPTION = "Browse available SRD rules and conditions."
 RULE_COMMAND_DESCRIPTION = "Look up a rule section in the D&D 5e SRD."
 REFERENCE_OPTION_DESCRIPTION = "Reference name, such as 'Cover' or 'Restrained'"
 SEARCH_OPTION_DESCRIPTION = "Words or a phrase, such as 'attack while hidden'"
-LIST_TOPIC_OPTION_DESCRIPTION = "Reference category to browse"
+LIST_TYPE_OPTION_DESCRIPTION = "Reference type to browse"
 RULE_OPTION_DESCRIPTION = "Rule name, such as 'Cover' or 'Making an Attack'"
 REFERENCE_NOT_FOUND_MESSAGE = (
     "I couldn't find that SRD reference. Start typing the name and choose a suggestion."
@@ -78,7 +77,11 @@ REFERENCE_LIST_TOPICS: dict[str, ReferenceType | None] = {
     "rules": RULE,
     "conditions": CONDITION,
 }
-REFERENCE_LIST_TOPIC_CHOICES = tuple(REFERENCE_LIST_TOPICS)
+REFERENCE_LIST_TYPE_CHOICES = (
+    discord.OptionChoice(name="All references", value="all"),
+    discord.OptionChoice(name="Rule sections", value="rules"),
+    discord.OptionChoice(name="Conditions", value="conditions"),
+)
 
 
 load_dotenv()
@@ -244,7 +247,6 @@ def reference_embeds(
             title=f"{name} — {entry.reference_type.label}{page}",
             description=description,
             color=discord.Colour.blurple(),
-            url=canonical_srd_url(entry.url),
         )
         footer = f"{SRD_NAME} - {entry.reference_type.label} - {SOURCE_NAME}"
         if legacy_alias:
@@ -486,11 +488,12 @@ class Rules(commands.Cog):
     async def list_references(
         self,
         ctx: discord.ApplicationContext,
-        topic: Annotated[
+        reference_type: Annotated[
             str,
             discord.Option(
-                description=LIST_TOPIC_OPTION_DESCRIPTION,
-                choices=REFERENCE_LIST_TOPIC_CHOICES,
+                name="type",
+                description=LIST_TYPE_OPTION_DESCRIPTION,
+                choices=REFERENCE_LIST_TYPE_CHOICES,
             ),
         ] = "all",
         private: Annotated[
@@ -506,7 +509,7 @@ class Rules(commands.Cog):
             await response.send(REFERENCE_LIST_NOT_READY_MESSAGE, error=True)
             return
         try:
-            results = reference_list_results(self.catalog.entries, topic)
+            results = reference_list_results(self.catalog.entries, reference_type)
         except ValueError as exc:
             await response.send(str(exc), error=True)
             return
@@ -514,10 +517,10 @@ class Rules(commands.Cog):
             await response.send(NO_LIST_RESULTS_MESSAGE, error=True)
             return
 
-        embeds = reference_list_embeds(topic, results)
+        embeds = reference_list_embeds(reference_type, results)
         view = ReferenceNavigatorView(
             owner_id=ctx.author.id,
-            query=f"list:{topic}",
+            query=f"list:{reference_type}",
             results=results,
             search_pages=embeds,
             payload_for=self.search_index.payload_for,

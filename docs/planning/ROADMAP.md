@@ -134,7 +134,7 @@ dead-end summary.
 
 ## Feature Block 4: Reference Quality-of-Life
 
-**Status:** In Progress
+**Status:** Complete (2026-07-25)
 
 Round out the reference experience after the core lookup and navigation flows
 are stable.
@@ -143,16 +143,21 @@ are stable.
 
 - Autocomplete responsiveness improvements based on measured callback and
   end-to-end latency.
-- `/rules list [topic]` for browsing by category.
+- `/rules list [type]` for browsing by category, with friendly labels.
 - `/rules compare <first> <second>` for side-by-side concepts.
 - `/rules random` for discovery.
 - Optional ephemeral/private responses.
-- Direct source links where stable URLs are available.
+- Human-facing source links where stable, useful, and legally appropriate.
+- A pluggable content-provider layer so SRD data remains the safe baseline and
+  optional expanded catalogs can be added without coupling commands to one
+  upstream format.
+- Evaluate 5e.tools code and URL conventions for reuse, while requiring a
+  source-by-source license and provenance audit before importing its content.
 - Server or user preferences for SRD version and response visibility.
 
 ### Acceptance Criteria
 
-- [ ] Autocomplete latency is measured separately for local callback execution
+- [x] Autocomplete latency is measured separately for local callback execution
   and the end-to-end Discord interaction.
 - [x] Warm autocomplete callbacks meet a documented response-time target for
   representative exact, prefix, substring, and no-result queries.
@@ -215,6 +220,10 @@ already knows which resource family they need.
   payloads, with explicit provenance.
 - A stable query/service interface that both Discord commands and future
   encounter generators can consume.
+- The existing one-message reference navigator generalized for monster result
+  lists and stat blocks, including numbered selection, detail pagination,
+  Back/Forward history, interaction ownership, timeout handling, and private
+  responses.
 - A federated search registry that combines independently implemented catalogs
   without hard-coding every resource type into the `/search` command.
 - Deterministic ordering and optional seeded random selection for repeatable
@@ -238,6 +247,15 @@ already knows which resource family they need.
   and environment when known.
 - [ ] Search results are paginated and can open the selected monster's full
   reference without retyping its name.
+- [ ] Monster list and search navigation reuse the shared navigator state
+  machine and response-visibility services rather than copying the rules cog.
+- [ ] Opening a monster detail, paging it, and following Back or Forward edits
+  one response and restores the exact prior list, filter, result, and page.
+- [ ] Public and private monster navigation enforce interaction ownership and
+  disable expired controls consistently with rule navigation.
+- [ ] Monster detail presentation supports reusable related-resource hooks for
+  future spell, item, environment, and encounter links without hard-coding
+  those catalogs into the bestiary cog.
 - [ ] Search and autocomplete run locally after startup with no API request per
   interaction.
 - [ ] The reusable catalog framework is generic over typed records and does not
@@ -261,7 +279,8 @@ already knows which resource family they need.
 - [ ] Empty catalogs, invalid filter combinations, API failures, and no-result
   searches receive useful user-facing responses.
 - [ ] Tests cover normalization, fractional CR values, combined filters,
-  ordering, pagination, detail navigation, provenance, and seeded selection.
+  ordering, pagination, multi-step detail history, interaction ownership,
+  private visibility, provenance, and seeded selection.
 
 ## Feature Block 6: Items and Equipment Catalog
 

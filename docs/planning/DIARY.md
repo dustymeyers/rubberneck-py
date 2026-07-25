@@ -146,6 +146,14 @@ reference paging, exact Back and Forward restoration, multi-hop related
 navigation, single-message updates, and readable vertical table formatting.
 Feature Block 3 is complete.
 
+Live Block 4 verification confirmed public and private rule lookup, search,
+list navigation, Back/Forward behavior, and both public and private monster
+commands. The raw dnd5eapi title links were intentionally removed because they
+opened API payloads rather than readable references. Human-facing links remain
+a provider task, with 5e.tools under evaluation. Block 5 now explicitly carries
+forward the tested rule navigator for monster lists, filters, stat blocks, and
+history rather than building a separate bestiary interaction flow.
+
 Isolated the legacy paginator demonstration cog from production startup as a
 maintenance cleanup. `main.py` now exposes an explicit production-cog loader,
 does not register `/pagetest`, and is safe to import without starting the bot.
@@ -153,3 +161,17 @@ does not register `/pagetest`, and is safe to import without starting the bot.
 Separated runtime and development dependencies and added Ruff configuration for
 the modern codebase. Ruff now provides import sorting, linting, and formatting;
 legacy and WIP modules are explicitly excluded until they are modernized.
+
+Completed the Block 4 content-source audit. SRD 5.1 under CC BY 4.0 remains the
+approved 2014 content boundary. The dnd5eapi software/data provenance and the
+5e.tools application/data distinction are now explicit: an MIT repository
+license permits reuse of application code but does not provide blanket
+permission to redistribute catalog text from sourcebooks. Future providers must
+record source, version, content license, attribution, and an enforceable import
+boundary before their data enters production.
+
+Feature Block 4 is complete. Autocomplete now has reproducible local and visible
+Discord measurements; response visibility is shared and consistent; raw API
+payload links are removed; rules can be browsed through the existing navigator;
+and future content imports have a documented provenance gate. The active queue
+now begins with Block 5's shared-navigation and typed-monster-catalog handoff.

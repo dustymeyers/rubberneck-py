@@ -56,3 +56,18 @@ current index is retained because its roughly 17.3 MiB combined footprint and
 sub-120 ms construction time are acceptable at today's catalog size. Revisit
 the representation before registering enough new catalogs to make memory scale
 materially beyond this baseline.
+
+## Manual Discord Suite
+
+Use the fixed-query, cold/warm, screen-recorded procedure in
+[`../testing/AUTOCOMPLETE_MANUAL.md`](../testing/AUTOCOMPLETE_MANUAL.md) to
+measure the client-visible portion. Keep those results separate from the local
+callback baseline above.
+
+The rules and monster video results are recorded in
+[`../testing/AUTOCOMPLETE_RESULTS_2026-07-25.md`](../testing/AUTOCOMPLETE_RESULTS_2026-07-25.md).
+All observed query shapes returned correctly and remained below two seconds.
+The approximately 200–1,433 ms client-visible range, compared with a
+sub-millisecond warm callback p95, rules out catalog lookup as the dominant
+visible cost. Further instrumentation is required to separate client debounce,
+network transit, Discord processing, and list rendering.

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import math
 from dataclasses import dataclass
 from time import perf_counter
 
@@ -31,8 +32,10 @@ def percentile(samples: list[float], percentage: float) -> float:
     """Return a nearest-rank percentile from a non-empty sample."""
     if not samples:
         raise ValueError("At least one timing sample is required.")
+    if not 0 < percentage <= 1:
+        raise ValueError("Percentage must be greater than zero and at most one.")
     ordered = sorted(samples)
-    index = min(len(ordered) - 1, int(len(ordered) * percentage))
+    index = math.ceil(len(ordered) * percentage) - 1
     return ordered[index]
 
 

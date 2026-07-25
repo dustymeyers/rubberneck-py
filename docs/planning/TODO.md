@@ -3,64 +3,59 @@
 Keep this file tactical. Detailed product intent and completion requirements
 belong in `ROADMAP.md`.
 
-## Feature Block 4: Reference Quality-of-Life
+Feature Block 4 is complete. Its implementation record and intentionally
+deferred candidates are preserved in `DIARY.md`, `DECISIONS.md`, and
+`ROADMAP.md`.
 
-### 1. Close the Autocomplete Measurement Loop
+## Feature Block 5: Searchable Bestiary and Random Encounter Foundation
 
-- [x] Benchmark representative exact, prefix, substring, empty, and no-result
-  queries against the warm local index.
-- [x] Record index construction time and estimated memory for both references
-  and monsters.
-- [ ] Manually measure the visible Discord autocomplete delay separately from
-  local callback execution.
-- [ ] Document the observed client debounce/network limitation and reconcile
-  the corresponding roadmap acceptance criteria.
+### 1. Generalize Catalog Navigation
 
-### 2. Add Shared Response Visibility
+- [ ] Define shared result-summary and detail-page presenter contracts.
+- [ ] Generalize the existing reference navigator around registered presenters
+  without weakening its tested state/history behavior.
+- [ ] Preserve exact Back/Forward snapshots, pagination, interaction ownership,
+  timeout handling, and public/private responses.
+- [ ] Add shared contract tests before moving monster commands onto it.
 
-- [x] Define one optional `private`/ephemeral parameter with a consistent,
-  unsurprising public default.
-- [x] Centralize defer/respond visibility behavior so lookup, search, list, and
-  compatibility commands do not implement it independently.
-- [x] Ensure interactive navigation remains usable within Discord's ephemeral
-  response and component-timeout limits.
-- [x] Test public defaults, private responses, deferred followups, and error
-  responses.
+### 2. Build the Monster Catalog
 
-### 3. Add Stable Source Links
+- [ ] Normalize API payloads into typed monster records with explicit
+  provenance.
+- [ ] Normalize challenge ratings, including fractional values, and expose
+  reusable type, size, alignment, environment, and CR metadata.
+- [ ] Load and index monsters once at startup with no API call per search or
+  autocomplete interaction.
+- [ ] Handle missing and version-dependent fields without losing usable
+  monsters.
 
-- [x] Verify which upstream 2014 SRD URLs are stable and useful to a person,
-  rather than linking blindly to raw or version-ambiguous endpoints.
-- [x] Add source-link construction to shared reference presentation code.
-- [x] Make the link available from every lookup/search-navigation path without
-  adding noisy duplicate fields.
-- [x] Test URL construction, missing URLs, and source/version labeling.
+### 3. Add Monster Browse and Search
 
-### 4. Add Browsable Rule Listings
+- [ ] Move `/monsters` onto numbered result selection with full stat blocks in
+  the same message.
+- [ ] Add local monster search with deterministic ordering and reusable filters.
+- [ ] Preserve filters, result page, selected monster, and stat-block page
+  across navigation history.
+- [ ] Keep `/monster` as the direct exact-name shortcut with consistent
+  visibility and errors.
 
-- [x] Finalize `/rules list [topic]` semantics using the currently supported
-  rule and condition categories.
-- [x] Build list results from the warm local catalog with deterministic
-  ordering and no per-command API request.
-- [x] Reuse the existing one-message paginator and result-to-reference
-  navigation.
-- [x] Provide useful empty-topic, empty-catalog, and invalid-topic responses.
-- [x] Test filtering, ordering, pagination, result selection, back/forward
-  navigation, interaction ownership, and private visibility.
+### 4. Add Generator-Ready Selection
+
+- [ ] Provide deterministic seeded random selection over the same filtered
+  monster catalog.
+- [ ] Separate reusable encounter-selection services from Discord presentation.
+- [ ] Add extension points for related spells, items, environments, and future
+  encounter-generator actions.
+- [ ] Cover empty catalogs, impossible filters, API failures, and no-result
+  searches with useful responses.
 
 ### 5. Block Closeout
 
+- [ ] Test normalization, fractional CR values, filtering, ordering,
+  pagination, multi-step history, ownership, visibility, provenance, and seeded
+  selection.
+- [ ] Perform focused Discord integration checks for public and private monster
+  browse/search/navigation.
 - [ ] Run the full pytest, Ruff, formatting, and clean-diff checks.
-- [ ] Perform Discord integration checks for list navigation, source links,
-  visibility, and autocomplete latency.
-- [ ] Update the roadmap, decision log, diary, and this queue with completed
-  scope and intentionally deferred candidates.
+- [ ] Update planning records and prepare the next-block handoff.
 - [ ] Review the complete branch diff before publishing.
-
-### Deferred Candidates
-
-- `/rules compare`
-- `/rules random`
-- Persistent server/user visibility and SRD-version preferences
-
-These remain roadmap candidates but are not part of the current Block 4 scope.

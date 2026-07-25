@@ -1,7 +1,5 @@
 """Slash commands for browsing D&D 5e SRD monsters."""
 
-from __future__ import annotations
-
 import asyncio
 import os
 from typing import Annotated, Any
@@ -17,7 +15,6 @@ from rubberneck.services.api_client import (
     DnDAPI,
     DnDAPIError,
     ResourceNotFound,
-    canonical_srd_url,
 )
 from rubberneck.services.reference_catalog import (
     ReferenceCatalog,
@@ -87,7 +84,6 @@ def monster_embed(payload: dict[str, Any]) -> discord.Embed:
         title=name,
         description=description or None,
         color=discord.Colour.blurple(),
-        url=canonical_srd_url(payload.get("url")),
     )
 
     armor_class = payload.get("armor_class", [])

@@ -18,9 +18,6 @@ I want to create a DnD 5e supporting discord bot which can make requests to dnd5
 All production commands use bounded in-process caching. Redis is not required
 to install, start, or run the bot.
 
-Reference and monster embed titles link to their canonical versioned source on
-dnd5eapi.co when the API provides a safe resource path.
-
 `/rule` remains available as a compatibility alias while the unified `/rules`
 commands evolve.
 

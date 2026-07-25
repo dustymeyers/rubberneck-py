@@ -1,6 +1,7 @@
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
 
+import discord
 import pytest
 
 import rubberneck.cogs.bestiary as bestiary_module
@@ -89,7 +90,7 @@ def test_monster_embed_formats_core_statistics_and_actions():
     )
 
     assert embed.title == "Owlbear"
-    assert embed.url == "https://www.dnd5eapi.co/api/2014/monsters/owlbear"
+    assert embed.url is None
     assert embed.description == "Large monstrosity, unaligned"
     assert any(
         field.name == "Armor Class" and field.value == "13" for field in embed.fields
@@ -97,6 +98,14 @@ def test_monster_embed_formats_core_statistics_and_actions():
     assert any(
         field.name == "Actions" and "Beak" in field.value for field in embed.fields
     )
+
+
+def test_monster_command_options_keep_runtime_types_for_pycord():
+    options = {option.name: option for option in Bestiary.monster.options}
+
+    assert isinstance(options["name"]._raw_type, type)
+    assert isinstance(options["private"]._raw_type, type)
+    assert options["private"].input_type is discord.SlashCommandOptionType.boolean
 
 
 @pytest.mark.asyncio

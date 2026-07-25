@@ -239,7 +239,7 @@ async def test_list_builds_navigable_private_catalog_pages(cog, ctx):
     await Rules.list_references.callback(
         cog,
         ctx,
-        topic="all",
+        reference_type="all",
         private=True,
     )
 
@@ -264,11 +264,11 @@ async def test_list_reports_not_ready_and_invalid_topics(cog, ctx):
     ctx.respond.reset_mock()
     cog.catalog.entries = [search_result().entry]
     cog.search_index.documents = (object(),)
-    await Rules.list_references.callback(cog, ctx, topic="spells")
+    await Rules.list_references.callback(cog, ctx, reference_type="spells")
     ctx.respond.assert_awaited_with(INVALID_LIST_TOPIC_MESSAGE, ephemeral=True)
 
     ctx.respond.reset_mock()
-    await Rules.list_references.callback(cog, ctx, topic="conditions")
+    await Rules.list_references.callback(cog, ctx, reference_type="conditions")
     ctx.respond.assert_awaited_with(NO_LIST_RESULTS_MESSAGE, ephemeral=True)
 
 
