@@ -163,14 +163,15 @@ without coupling bestiary search to the future generator engine.
 
 ### Proposed Command Surface
 
-- `/bestiary lookup <monster>` opens one monster's complete stat reference.
-- `/bestiary search [name] [type] [size] [cr] [environment]` browses monsters
+- `/monster <name>` opens one monster's complete stat reference.
+- `/monsters list [filters]` browses the complete catalog.
+- `/monsters search [name] [type] [size] [cr] [environment]` finds monsters
   using combinable filters.
-- `/bestiary random [filters]` selects one monster from the current filter set
+- `/monsters random [filters]` selects one monster from the current filter set
   for quick discovery; it does not build a balanced encounter.
 
-The existing `/monster` and `/monsters` commands should remain as compatibility
-aliases until the grouped bestiary commands are established.
+The existing `/monster` lookup remains the focused singular command.
+`/monsters` evolves into the grouped surface for plural catalog operations.
 
 ### Catalog and Data Features
 
