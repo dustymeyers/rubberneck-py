@@ -7,9 +7,9 @@ belong in `ROADMAP.md`.
 
 ### 1. Close the Autocomplete Measurement Loop
 
-- [ ] Benchmark representative exact, prefix, substring, empty, and no-result
+- [x] Benchmark representative exact, prefix, substring, empty, and no-result
   queries against the warm local index.
-- [ ] Record index construction time and estimated memory for both references
+- [x] Record index construction time and estimated memory for both references
   and monsters.
 - [ ] Manually measure the visible Discord autocomplete delay separately from
   local callback execution.

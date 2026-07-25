@@ -154,13 +154,13 @@ are stable.
 
 - [ ] Autocomplete latency is measured separately for local callback execution
   and the end-to-end Discord interaction.
-- [ ] Warm autocomplete callbacks meet a documented response-time target for
+- [x] Warm autocomplete callbacks meet a documented response-time target for
   representative exact, prefix, substring, and no-result queries.
-- [ ] Autocomplete performs no network requests or full-catalog scans per
+- [x] Autocomplete performs no network requests or full-catalog scans per
   keystroke.
-- [ ] Index construction time and memory use are measured before choosing
+- [x] Index construction time and memory use are measured before choosing
   whether to retain or replace the precomputed substring index.
-- [ ] User-facing guidance documents any irreducible Discord client debounce or
+- [x] User-facing guidance documents any irreducible Discord client debounce or
   platform delay discovered during testing.
 - [ ] Each selected candidate receives its own scoped acceptance criteria before
   implementation begins.
