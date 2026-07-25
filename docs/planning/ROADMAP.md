@@ -4,6 +4,22 @@ Rubberneck is a Discord-based D&D 5e SRD reference and game-master toolkit. It
 should make commonly needed information fast to retrieve during play, then grow
 into reusable generators for encounters, shops, and loot.
 
+## Delivery Priority
+
+Work proceeds in dependency order, favoring foundations that unlock multiple
+user-facing features:
+
+1. Finish only the highest-value reference quality-of-life work.
+2. Build the reusable catalog framework and prove it with monster search.
+3. Add the item and equipment catalog needed by shops and loot.
+4. Build the generator engine and ship random encounters first.
+5. Add shop and loot generators on the shared item catalog.
+6. Expand the compendium to spells and character options.
+
+Candidate features within a block do not outrank prerequisites in the next
+block. Lower-value polish can be deferred when the shared catalog or generator
+foundation provides greater product leverage.
+
 ## Feature Block 0: Rule Lookup Foundation
 
 **Status:** Complete
@@ -232,18 +248,107 @@ The existing `/monster` lookup remains the focused singular command.
 - [ ] Tests cover normalization, fractional CR values, combined filters,
   ordering, pagination, detail navigation, provenance, and seeded selection.
 
-## Feature Block 6: Items and Character Compendium
+## Feature Block 6: Items and Equipment Catalog
 
 **Status:** Planned
 
-Expand the Block 5 catalog framework across the other SRD resources players and
-game masters routinely browse. Equipment becomes the authoritative item source
-for shops and loot, while spells and character options form a unified
-character-reference compendium.
+Expand the Block 5 catalog framework to equipment and magic items. This becomes
+the authoritative item source for shops and loot without embedding generator
+rules in item commands.
 
 ### Proposed Command Surface
 
 - `/item <name>` and `/items search [name] [category] [cost] [rarity]`
+- `/items list [category]`
+- `/items random [filters]` for discovery, not generated shop inventory
+
+Singular commands provide direct lookup. Plural commands provide browsing,
+search, comparison, and filtering.
+
+### Resource Features
+
+- Items and equipment: weapons, armor, adventuring gear, tools, mounts,
+  vehicles, magic items, category, cost, weight, mechanical properties, rarity
+  when available, and project-authored shop/settlement tags.
+
+### Acceptance Criteria
+
+- [ ] Every resource family uses the Block 5 generic catalog and API client
+  rather than introducing a parallel cache or search implementation.
+- [ ] Each endpoint has a typed record and adapter with explicit handling for
+  missing or version-dependent fields.
+- [ ] Lookup, autocomplete, filter semantics, result navigation, provenance,
+  and error handling are consistent across resource families.
+- [ ] Items support reusable filters and tags needed by Block 8 shop and loot
+  generators without embedding shop-generation logic in item commands.
+- [ ] Resource-specific formatters compose shared embed and pagination helpers
+  while retaining fields appropriate to that resource.
+- [ ] Adding another SRD endpoint requires an adapter, typed record, filter
+  specification, and formatter—not another API client or copied cog framework.
+- [ ] Tests share reusable contract suites for every catalog adapter and add
+  focused coverage for resource-specific normalization and filters.
+
+## Feature Block 7: Generator Engine and Random Encounters
+
+**Status:** Planned
+
+Build the reusable seeded, weighted-table engine and prove it with random
+encounters backed by the Block 5 monster catalog.
+
+### Proposed Command Surface
+
+- `/encounter generate [environment] [party_level] [party_size] [difficulty]`
+- `/encounter reroll` repeats the latest request with a new seed.
+
+### Acceptance Criteria
+
+- [ ] Table data is editable independently of command code.
+- [ ] The generator supports weighted entries and nested tables.
+- [ ] Seeded generation produces deterministic results for tests.
+- [ ] Invalid table data fails validation with actionable messages.
+- [ ] Encounter generation consumes the searchable bestiary service rather
+  than maintaining a second monster list or fetching monsters per request.
+- [ ] Encounter constraints and balancing rules are separate from monster data
+  and Discord presentation.
+- [ ] Generated encounters explain their selected environment, difficulty,
+  estimated XP budget, and any fallback behavior.
+- [ ] The engine exposes reusable primitives for later shop and loot generators.
+- [ ] SRD/API-derived content is distinguishable from project-authored tables.
+
+## Feature Block 8: Shop and Loot Generators
+
+**Status:** Planned — later phase
+
+Use the Block 6 item catalog and Block 7 generator engine to create shop
+inventories and loot without maintaining separate item arrays.
+
+### Proposed Command Surface
+
+- `/shop generate [settlement] [shop_type] [budget]`
+- `/loot generate [tier] [source] [theme]`
+
+### Acceptance Criteria
+
+- [ ] Shop inventories use settlement, shop-type, availability, and cost
+  constraints from data rather than command conditionals.
+- [ ] Loot generation supports tier, source, theme, and rarity filters.
+- [ ] Shop and loot commands share the Block 7 weighted and seeded generation
+  primitives.
+- [ ] Shop and loot generation consume the shared item catalog rather than
+  maintaining separate equipment arrays.
+- [ ] Generated results retain item provenance and can open full item details.
+- [ ] Seeded requests are reproducible in automated tests.
+- [ ] SRD/API-derived content is distinguishable from project-authored tables.
+
+## Feature Block 9: Spells and Character Compendium
+
+**Status:** Planned — later phase
+
+Expand the proven catalog framework to spells, classes/subclasses, backgrounds,
+species/races, and feats after the generator-enabling catalogs are stable.
+
+### Proposed Command Surface
+
 - `/spell <name>` and `/spells search [class] [level] [school] [ritual]`
 - `/class <name>` and `/classes list`
 - `/subclass <name>` and `/subclasses list [class]`
@@ -251,15 +356,8 @@ character-reference compendium.
 - `/species lookup <name>` and `/species list` for species/races
 - `/feat <name>` and `/feats search [name] [prerequisite]`
 
-Singular commands provide direct lookup. Plural commands provide browsing,
-search, comparison, and filtering. User-facing copy should say "species" while
-retaining compatibility with upstream API fields or searches that use "race."
-
 ### Resource Features
 
-- Items and equipment: weapons, armor, adventuring gear, tools, mounts,
-  vehicles, magic items, category, cost, weight, mechanical properties, rarity
-  when available, and project-authored shop/settlement tags.
 - Spells: level, school, casting time, range, duration, concentration, ritual,
   components, damage/healing metadata, and class availability.
 - Classes and subclasses: hit die, proficiencies, saving throws, levels,
@@ -273,51 +371,14 @@ retaining compatibility with upstream API fields or searches that use "race."
 
 ### Acceptance Criteria
 
-- [ ] Every resource family uses the Block 5 generic catalog and API client
-  rather than introducing a parallel cache or search implementation.
-- [ ] Each endpoint has a typed record and adapter with explicit handling for
-  missing or version-dependent fields.
-- [ ] Lookup, autocomplete, filter semantics, result navigation, provenance,
-  and error handling are consistent across resource families.
-- [ ] Items support reusable filters and tags needed by Block 7 shop and loot
-  generators without embedding shop-generation logic in item commands.
+- [ ] Every resource family uses the Block 5 generic catalog and API client.
 - [ ] Spell searches support combinable class, level, school, ritual, and
   concentration filters.
 - [ ] Classes, subclasses, species/subraces, and related features preserve
   their parent-child relationships for navigation.
 - [ ] "Species" and legacy "race" terminology resolve to the same underlying
   SRD resources without duplicating records.
-- [ ] Resource-specific formatters compose shared embed and pagination helpers
-  while retaining fields appropriate to that resource.
-- [ ] Adding another SRD endpoint requires an adapter, typed record, filter
-  specification, and formatter—not another API client or copied cog framework.
-- [ ] Tests share reusable contract suites for every catalog adapter and add
-  focused coverage for resource-specific normalization and filters.
-
-## Feature Block 7: Game-Master Generators
-
-**Status:** Planned — later phase
-
-Build a reusable weighted-table engine before implementing separate generators.
-
-### Candidate Features
-
-- Random encounters using the Block 5 monster catalog, filtered by environment
-  and party parameters.
-- Shop inventories using the Block 6 item catalog, filtered by settlement and
-  shop type.
-- Loot tables using the Block 6 item catalog, filtered by tier, source, and
-  theme.
-
-### Acceptance Criteria
-
-- [ ] Table data is editable independently of command code.
-- [ ] The generator supports weighted entries and nested tables.
-- [ ] Seeded generation produces deterministic results for tests.
-- [ ] Invalid table data fails validation with actionable messages.
-- [ ] Encounter, shop, and loot commands share the same generation engine.
-- [ ] Encounter generation consumes the searchable bestiary service rather
-  than maintaining a second monster list or fetching monsters per request.
-- [ ] Shop and loot generation consume the shared item catalog rather than
-  maintaining separate equipment arrays.
-- [ ] SRD/API-derived content is distinguishable from project-authored tables.
+- [ ] Lookup, autocomplete, result navigation, provenance, and error handling
+  remain consistent with monsters and items.
+- [ ] Resource adapters satisfy the shared catalog contract tests and include
+  focused normalization and filter coverage.
