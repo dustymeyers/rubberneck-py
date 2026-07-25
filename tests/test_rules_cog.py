@@ -5,7 +5,10 @@ import pytest
 
 import rubberneck.cogs.rules as rules_module
 from rubberneck.cogs.rules import (
+    INVALID_LIST_TOPIC_MESSAGE,
+    NO_LIST_RESULTS_MESSAGE,
     NO_SEARCH_RESULTS_MESSAGE,
+    REFERENCE_LIST_NOT_READY_MESSAGE,
     REFERENCE_NOT_FOUND_MESSAGE,
     RULE_NOT_FOUND_MESSAGE,
     SEARCH_NOT_READY_MESSAGE,
@@ -144,13 +147,15 @@ async def test_lookup_and_legacy_rule_delegate_with_correct_scope(cog, ctx):
     await Rules.rule.callback(cog, ctx, "cover")
 
     assert cog._respond_with_reference.await_args_list[0].args == (ctx, "cover")
+    assert cog._respond_with_reference.await_args_list[0].kwargs == {"private": False}
     assert cog._respond_with_reference.await_args_list[1].args == (
         ctx,
         "cover",
         RULE,
     )
     assert cog._respond_with_reference.await_args_list[1].kwargs == {
-        "legacy_alias": True
+        "legacy_alias": True,
+        "private": False,
     }
 
 
@@ -160,7 +165,7 @@ async def test_search_reports_index_not_ready(cog, ctx):
 
     await Rules.search.callback(cog, ctx, "hidden")
 
-    ctx.defer.assert_awaited_once_with()
+    ctx.defer.assert_awaited_once_with(ephemeral=False)
     cog.load_references.assert_awaited_once_with()
     ctx.respond.assert_awaited_once_with(SEARCH_NOT_READY_MESSAGE, ephemeral=True)
 
@@ -190,6 +195,18 @@ async def test_search_responds_with_one_embed(cog, ctx):
     response = ctx.respond.await_args.kwargs
     assert response["embed"].fields[0].value == "Matching text."
     assert response["view"].owner_id == ctx.author.id
+    assert response["ephemeral"] is False
+
+
+@pytest.mark.asyncio
+async def test_search_can_return_a_private_response(cog, ctx):
+    cog.search_index.documents = (object(),)
+    cog.search_index.search.return_value = [search_result()]
+
+    await Rules.search.callback(cog, ctx, "matching", private=True)
+
+    ctx.defer.assert_awaited_once_with(ephemeral=True)
+    assert ctx.respond.await_args.kwargs["ephemeral"] is True
 
 
 @pytest.mark.asyncio
@@ -205,6 +222,54 @@ async def test_search_uses_one_navigator_for_multiple_pages(cog, ctx):
     assert response["embed"].title.endswith("(1/2)")
     assert len(response["view"].search_pages) == 2
     assert len(response["view"].result_buttons) == 5
+
+
+@pytest.mark.asyncio
+async def test_list_builds_navigable_private_catalog_pages(cog, ctx):
+    rule = search_result(1).entry
+    condition = ReferenceEntry(
+        "restrained",
+        "Restrained",
+        "/conditions/restrained",
+        rules_module.CONDITION,
+    )
+    cog.catalog.entries = [condition, rule]
+    cog.search_index.documents = (object(),)
+
+    await Rules.list_references.callback(
+        cog,
+        ctx,
+        reference_type="all",
+        private=True,
+    )
+
+    ctx.defer.assert_awaited_once_with(ephemeral=True)
+    response = ctx.respond.await_args.kwargs
+    assert response["ephemeral"] is True
+    assert response["embed"].title == "SRD references — All"
+    assert [result.entry.name for result in response["view"].results] == [
+        "Restrained",
+        "Rule 1",
+    ]
+    assert response["view"].owner_id == ctx.author.id
+
+
+@pytest.mark.asyncio
+async def test_list_reports_not_ready_and_invalid_topics(cog, ctx):
+    cog.load_references = AsyncMock()
+
+    await Rules.list_references.callback(cog, ctx)
+    ctx.respond.assert_awaited_with(REFERENCE_LIST_NOT_READY_MESSAGE, ephemeral=True)
+
+    ctx.respond.reset_mock()
+    cog.catalog.entries = [search_result().entry]
+    cog.search_index.documents = (object(),)
+    await Rules.list_references.callback(cog, ctx, reference_type="spells")
+    ctx.respond.assert_awaited_with(INVALID_LIST_TOPIC_MESSAGE, ephemeral=True)
+
+    ctx.respond.reset_mock()
+    await Rules.list_references.callback(cog, ctx, reference_type="conditions")
+    ctx.respond.assert_awaited_with(NO_LIST_RESULTS_MESSAGE, ephemeral=True)
 
 
 @pytest.mark.asyncio

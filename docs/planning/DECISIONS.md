@@ -221,3 +221,44 @@ modules remain excluded until their modernization work begins.
 contributors need one reproducible development install. One formatter and
 linter removes style ambiguity without mixing mechanical legacy cleanup into
 feature work.
+
+## 2026-07-25 — Friendly Reference Types and Content Providers
+
+**Decision:** `/rules list` defaults to all references and exposes an optional
+`type` argument with the labels `All references`, `Rule sections`, and
+`Conditions`. The command avoids the visually repetitive
+`/rules list rules`.
+
+Raw dnd5eapi.co resource URLs are not presented as source links because they
+open API payloads rather than readable reference pages. 5e.tools is a candidate
+for human-facing links and provider tooling, but its MIT-licensed application
+code and the provenance of its catalog content are treated separately. The SRD
+remains the default data boundary. Any expanded monster, item, spell, or
+character-option data requires a source-by-source license and provenance audit
+before Rubberneck imports or redistributes it.
+
+Future catalogs should use a shared provider interface and normalized domain
+models. Commands and presentation code must not depend directly on a 5e.tools
+or dnd5eapi payload shape.
+
+**Reason:** Friendly labels make Discord discovery clearer. Provider boundaries
+let catalogs share loading, caching, search, and presentation infrastructure
+without assuming that publicly accessible rules content is licensed for reuse.
+
+## 2026-07-25 — Reuse Reference Navigation for Monsters
+
+**Decision:** Feature Block 5 will adapt the existing stateful reference
+navigator to monster lists, filtered searches, and full stat blocks. It will
+reuse numbered selection, detail pagination, exact Back/Forward snapshots,
+interaction ownership, component timeout behavior, and public/private response
+handling through shared services.
+
+Monster-specific code supplies records, filters, summary text, stat-block
+pages, and related-resource metadata. It does not fork the navigation state
+machine. The shared navigator will expose presenter/provider boundaries so
+items, spells, and other catalogs can adopt the same flow later.
+
+**Reason:** The live-tested rules navigation already solves the difficult
+Discord interaction behavior. Reusing it keeps monster browsing consistent and
+prevents each resource cog from accumulating a slightly different paginator
+and history implementation.

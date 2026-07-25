@@ -94,6 +94,20 @@ class ReferenceCatalog:
         key = self._autocomplete_key(query, reference_type)
         return list(self.autocomplete_index.get(key, ()))
 
+    def list_entries(
+        self,
+        reference_type: ReferenceType | None = None,
+    ) -> list[ReferenceEntry]:
+        """Return a deterministic snapshot for browsing."""
+        return sorted(
+            self._entries_for(reference_type),
+            key=lambda entry: (
+                entry.name.casefold(),
+                entry.reference_type.key,
+                entry.index,
+            ),
+        )
+
     async def resolve(
         self,
         term: str,

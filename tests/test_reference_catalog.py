@@ -70,6 +70,20 @@ async def test_explicit_scope_excludes_other_resource_types(catalog):
 
 
 @pytest.mark.asyncio
+async def test_list_entries_is_deterministic_and_supports_scopes(catalog):
+    assert [entry.name for entry in catalog.list_entries()] == [
+        "Cover",
+        "Invisible",
+        "Making an Attack",
+        "Restrained",
+    ]
+    assert [entry.name for entry in catalog.list_entries(CONDITION)] == [
+        "Invisible",
+        "Restrained",
+    ]
+
+
+@pytest.mark.asyncio
 async def test_autocomplete_labels_include_resource_type(catalog):
     choices = catalog.choices("rest")
 

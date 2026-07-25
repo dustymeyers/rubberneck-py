@@ -1,6 +1,7 @@
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
 
+import discord
 import pytest
 
 import rubberneck.cogs.bestiary as bestiary_module
@@ -68,6 +69,7 @@ def test_monster_embed_formats_core_statistics_and_actions():
     embed = monster_embed(
         {
             "name": "Owlbear",
+            "url": "/api/2014/monsters/owlbear",
             "size": "Large",
             "type": "monstrosity",
             "alignment": "unaligned",
@@ -88,6 +90,7 @@ def test_monster_embed_formats_core_statistics_and_actions():
     )
 
     assert embed.title == "Owlbear"
+    assert embed.url is None
     assert embed.description == "Large monstrosity, unaligned"
     assert any(
         field.name == "Armor Class" and field.value == "13" for field in embed.fields
@@ -95,6 +98,14 @@ def test_monster_embed_formats_core_statistics_and_actions():
     assert any(
         field.name == "Actions" and "Beak" in field.value for field in embed.fields
     )
+
+
+def test_monster_command_options_keep_runtime_types_for_pycord():
+    options = {option.name: option for option in Bestiary.monster.options}
+
+    assert isinstance(options["name"]._raw_type, type)
+    assert isinstance(options["private"]._raw_type, type)
+    assert options["private"].input_type is discord.SlashCommandOptionType.boolean
 
 
 @pytest.mark.asyncio
@@ -123,7 +134,7 @@ async def test_monster_autocomplete_uses_precomputed_catalog(cog):
 async def test_monsters_reports_catalog_startup_failure(cog, ctx):
     await cog.monsters.callback(cog, ctx)
 
-    ctx.defer.assert_awaited_once_with()
+    ctx.defer.assert_awaited_once_with(ephemeral=False)
     ctx.respond.assert_awaited_once_with(
         MONSTERS_NOT_READY_MESSAGE,
         ephemeral=True,
@@ -141,6 +152,20 @@ async def test_monster_returns_formatted_embed(cog, ctx):
 
     response = ctx.respond.await_args.kwargs
     assert response["embed"].title == "Owlbear"
+    assert response["ephemeral"] is False
+
+
+@pytest.mark.asyncio
+async def test_monster_can_return_a_private_response(cog, ctx):
+    cog.catalog.resolve.return_value = (
+        monster_entry(),
+        {"name": "Owlbear", "armor_class": [], "speed": {}},
+    )
+
+    await cog.monster.callback(cog, ctx, "monster:owlbear", private=True)
+
+    ctx.defer.assert_awaited_once_with(ephemeral=True)
+    assert ctx.respond.await_args.kwargs["ephemeral"] is True
 
 
 @pytest.mark.asyncio

@@ -1,6 +1,9 @@
 import pytest
 
-from rubberneck.services.api_client import DnDAPI, ResourceNotFound
+from rubberneck.services.api_client import (
+    DnDAPI,
+    ResourceNotFound,
+)
 
 
 class FakeResponse:
