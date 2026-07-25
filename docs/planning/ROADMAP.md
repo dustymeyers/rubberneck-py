@@ -134,7 +134,7 @@ dead-end summary.
 
 ## Feature Block 4: Reference Quality-of-Life
 
-**Status:** Planned
+**Status:** In Progress
 
 Round out the reference experience after the core lookup and navigation flows
 are stable.
