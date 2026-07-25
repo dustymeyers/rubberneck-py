@@ -7,12 +7,16 @@ I want to create a DnD 5e supporting discord bot which can make requests to dnd5
 
 - `/rule name` looks up a rule section from the 2014 D&D 5e SRD. Begin typing
   to see matching rules such as **Cover**, **Resting**, or **Making an Attack**.
-  API responses are fetched asynchronously and cached in memory for one hour;
-  Redis is not required for this command.
+  API responses are fetched asynchronously and cached in memory for one hour.
 - `/rules lookup term` searches both rule sections and conditions.
 - `/rules search text` searches inside locally indexed rule and condition
   descriptions. Queries require at least three characters and return up to 20
   ranked results in one paginated response.
+- `/monsters` browses the available 2014 SRD monsters.
+- `/monster name` looks up a monster with cached autocomplete.
+
+All production commands use bounded in-process caching. Redis is not required
+to install, start, or run the bot.
 
 `/rule` remains available as a compatibility alias while the unified `/rules`
 commands evolve.
@@ -27,9 +31,6 @@ to propagate a newly created command.
 Some kind of IDE that is able to run python. I suggest Visual Studio Code (VSC).
 
 [Python 3.12.4](https://www.python.org/downloads/release/python-3124/)
-
-[Redis](https://redis.io/docs/latest/operate/oss_and_stack/install/install-redis/)
-
 
 See the requirements.txt for a list of python library dependencies.
 
