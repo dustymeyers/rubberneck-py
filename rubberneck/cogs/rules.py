@@ -13,7 +13,12 @@ from dotenv import load_dotenv
 from rubberneck.cogs.reference_navigation import ReferenceNavigatorView
 from rubberneck.cogs.responses import PRIVATE_OPTION_DESCRIPTION, ResponseSession
 from rubberneck.logging import logger
-from rubberneck.services.api_client import DnDAPI, DnDAPIError, ResourceNotFound
+from rubberneck.services.api_client import (
+    DnDAPI,
+    DnDAPIError,
+    ResourceNotFound,
+    canonical_srd_url,
+)
 from rubberneck.services.reference_catalog import (
     RULE,
     ReferenceCatalog,
@@ -223,6 +228,7 @@ def reference_embeds(
             title=f"{name} — {entry.reference_type.label}{page}",
             description=description,
             color=discord.Colour.blurple(),
+            url=canonical_srd_url(entry.url),
         )
         footer = f"{SRD_NAME} - {entry.reference_type.label} - {SOURCE_NAME}"
         if legacy_alias:

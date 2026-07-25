@@ -68,6 +68,7 @@ def test_monster_embed_formats_core_statistics_and_actions():
     embed = monster_embed(
         {
             "name": "Owlbear",
+            "url": "/api/2014/monsters/owlbear",
             "size": "Large",
             "type": "monstrosity",
             "alignment": "unaligned",
@@ -88,6 +89,7 @@ def test_monster_embed_formats_core_statistics_and_actions():
     )
 
     assert embed.title == "Owlbear"
+    assert embed.url == "https://www.dnd5eapi.co/api/2014/monsters/owlbear"
     assert embed.description == "Large monstrosity, unaligned"
     assert any(
         field.name == "Armor Class" and field.value == "13" for field in embed.fields

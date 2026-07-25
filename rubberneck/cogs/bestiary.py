@@ -13,7 +13,12 @@ from dotenv import load_dotenv
 
 from rubberneck.cogs.responses import PRIVATE_OPTION_DESCRIPTION, ResponseSession
 from rubberneck.logging import logger
-from rubberneck.services.api_client import DnDAPI, DnDAPIError, ResourceNotFound
+from rubberneck.services.api_client import (
+    DnDAPI,
+    DnDAPIError,
+    ResourceNotFound,
+    canonical_srd_url,
+)
 from rubberneck.services.reference_catalog import (
     ReferenceCatalog,
     ReferenceEntry,
@@ -82,6 +87,7 @@ def monster_embed(payload: dict[str, Any]) -> discord.Embed:
         title=name,
         description=description or None,
         color=discord.Colour.blurple(),
+        url=canonical_srd_url(payload.get("url")),
     )
 
     armor_class = payload.get("armor_class", [])

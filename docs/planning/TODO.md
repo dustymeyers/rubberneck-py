@@ -29,12 +29,12 @@ belong in `ROADMAP.md`.
 
 ### 3. Add Stable Source Links
 
-- [ ] Verify which upstream 2014 SRD URLs are stable and useful to a person,
+- [x] Verify which upstream 2014 SRD URLs are stable and useful to a person,
   rather than linking blindly to raw or version-ambiguous endpoints.
-- [ ] Add source-link construction to shared reference presentation code.
-- [ ] Make the link available from every lookup/search-navigation path without
+- [x] Add source-link construction to shared reference presentation code.
+- [x] Make the link available from every lookup/search-navigation path without
   adding noisy duplicate fields.
-- [ ] Test URL construction, missing URLs, and source/version labeling.
+- [x] Test URL construction, missing URLs, and source/version labeling.
 
 ### 4. Add Browsable Rule Listings
 

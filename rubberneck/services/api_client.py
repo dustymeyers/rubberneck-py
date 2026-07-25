@@ -6,8 +6,12 @@ import asyncio
 import time
 from dataclasses import dataclass
 from typing import Any, Callable
+from urllib.parse import urlparse
 
 import aiohttp
+
+SRD_API_ORIGIN = "https://www.dnd5eapi.co"
+SRD_API_VERSION_PATH = "/api/2014"
 
 
 class DnDAPIError(RuntimeError):
@@ -27,6 +31,25 @@ class ResourceReference:
     @classmethod
     def from_dict(cls, value: dict[str, Any]) -> "ResourceReference":
         return cls(index=value["index"], name=value["name"], url=value["url"])
+
+
+def canonical_srd_url(path: str | None) -> str | None:
+    """Return a safe, versioned dnd5eapi.co resource URL."""
+    if not path:
+        return None
+
+    parsed = urlparse(path)
+    if parsed.scheme or parsed.netloc:
+        if parsed.scheme == "https" and parsed.netloc == "www.dnd5eapi.co":
+            return path
+        return None
+
+    normalized = f"/{path.lstrip('/')}"
+    if normalized.startswith(f"{SRD_API_VERSION_PATH}/"):
+        return f"{SRD_API_ORIGIN}{normalized}"
+    if normalized.startswith("/api/"):
+        return None
+    return f"{SRD_API_ORIGIN}{SRD_API_VERSION_PATH}{normalized}"
 
 
 class DnDAPI:

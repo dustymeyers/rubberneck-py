@@ -101,8 +101,17 @@ def test_condition_embed_identifies_its_reference_type():
     )[0]
 
     assert embed.title == "Restrained — Condition"
+    assert embed.url == "https://www.dnd5eapi.co/api/2014/conditions/restrained"
     assert "Speed becomes 0." in embed.description
     assert "Condition" in embed.footer.text
+
+
+def test_reference_embed_omits_source_link_when_url_is_missing():
+    entry = ReferenceEntry("restrained", "Restrained", "", CONDITION)
+
+    embed = reference_embeds(entry, {"name": "Restrained", "desc": ["Text."]})[0]
+
+    assert embed.url is None
 
 
 def test_reference_formatter_handles_list_markdown():
