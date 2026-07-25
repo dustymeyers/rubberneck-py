@@ -155,3 +155,16 @@ clicks are serialized so an older callback cannot overwrite newer state.
 preserves page context, avoids extra channel messages, and leaves enough
 component capacity for related-reference selection without coupling navigation
 to Pycord paginator internals.
+
+## 2026-07-24 — Numbered Search Result Buttons
+
+**Decision:** Numbered buttons supersede the search-result string selector from
+the previous navigator decision. Each search page displays five compact buttons
+whose numbers match the result headings. Missing slots are disabled, and all
+result buttons are disabled while a full reference is open.
+
+**Reason:** Embed text cannot trigger Discord interactions directly. Numbered
+buttons are the closest native interaction to clicking a result card, require
+one click instead of opening a menu, and fit exactly within one component row.
+The selector capacity remains available for future related-reference choices,
+where labels are more important than positional numbers.

@@ -115,3 +115,8 @@ controls. Selecting a result opens its complete indexed source through the
 existing lookup formatter without a network request; back restores the exact
 search page. Tests cover selection, reference pagination, page restoration,
 missing indexed content, ownership, single-message edits, and component limits.
+
+Replaced the result selector with five page-aware numbered buttons after live
+interaction review. Their labels correspond to the numbered result cards, so a
+full reference opens in one click; empty page slots and all buttons in reference
+mode are disabled.

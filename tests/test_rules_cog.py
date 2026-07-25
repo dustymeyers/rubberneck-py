@@ -195,7 +195,7 @@ async def test_search_uses_one_navigator_for_multiple_pages(cog, ctx):
     response = ctx.respond.await_args.kwargs
     assert response["embed"].title.endswith("(1/2)")
     assert len(response["view"].search_pages) == 2
-    assert len(response["view"].result_select.options) == 5
+    assert len(response["view"].result_buttons) == 5
 
 
 @pytest.mark.asyncio

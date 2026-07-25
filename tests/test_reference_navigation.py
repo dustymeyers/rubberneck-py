@@ -66,11 +66,22 @@ async def test_search_page_controls_update_options_and_restore_page(view):
     await view.next_button.callback(source)
 
     assert view.search_page == 1
-    assert [option.value for option in view.result_select.options] == ["rule:rule-5"]
+    assert [button.label for button in view.result_buttons] == [
+        "6",
+        "—",
+        "—",
+        "—",
+        "—",
+    ]
+    assert [button.disabled for button in view.result_buttons] == [
+        False,
+        True,
+        True,
+        True,
+        True,
+    ]
 
-    view.result_select._interaction = source
-    view.result_select._selected_values = ["rule:rule-5"]
-    await view.result_select.callback(source)
+    await view.result_buttons[0].callback(source)
     assert view.mode == "reference"
     assert view.current_embed.title == "Rule 5 page 1"
 
@@ -83,10 +94,8 @@ async def test_search_page_controls_update_options_and_restore_page(view):
 @pytest.mark.asyncio
 async def test_reference_page_controls_reuse_same_message(view):
     source = interaction()
-    view.result_select._interaction = source
-    view.result_select._selected_values = ["rule:rule-0"]
 
-    await view.result_select.callback(source)
+    await view.result_buttons[0].callback(source)
     await view.next_button.callback(source)
 
     assert view.reference_page == 1
@@ -114,10 +123,9 @@ async def test_navigation_rejects_other_users_privately(view):
 @pytest.mark.asyncio
 async def test_missing_indexed_reference_does_not_change_state(view):
     source = interaction()
-    view.result_select._interaction = source
-    view.result_select._selected_values = ["rule:not-present"]
+    view.payload_for = lambda entry: (_ for _ in ()).throw(KeyError(entry.value))
 
-    await view.result_select.callback(source)
+    await view.result_buttons[0].callback(source)
 
     assert view.mode == "search"
     assert not view.history
@@ -130,6 +138,6 @@ async def test_missing_indexed_reference_does_not_change_state(view):
 def test_component_layout_stays_within_discord_limits(view):
     components = view.to_components()
 
-    assert len(view.children) == 5
+    assert len(view.children) == 9
     assert len(components) == 2
-    assert len(view.result_select.options) == 5
+    assert len(view.result_buttons) == 5

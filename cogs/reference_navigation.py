@@ -28,6 +28,23 @@ class NavigationSnapshot:
     reference_page: int
 
 
+class SearchResultButton(discord.ui.Button):
+    """Open one result slot from the navigator's current search page."""
+
+    def __init__(self, navigator: "ReferenceNavigatorView", slot: int) -> None:
+        super().__init__(
+            label=str(slot + 1),
+            style=discord.ButtonStyle.secondary,
+            custom_id=f"reference_result_{slot}",
+            row=0,
+        )
+        self.navigator = navigator
+        self.slot = slot
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        await self.navigator.open_result(self.slot, interaction)
+
+
 class ReferenceNavigatorView(discord.ui.View):
     """Own one message while it moves between search and reference pages."""
 
@@ -60,26 +77,28 @@ class ReferenceNavigatorView(discord.ui.View):
         self.reference_page = 0
         self.history: list[NavigationSnapshot] = []
         self._state_lock = asyncio.Lock()
+        self.result_buttons = [
+            SearchResultButton(self, slot)
+            for slot in range(self.results_per_page)
+        ]
+        for button in self.result_buttons:
+            self.add_item(button)
         self._sync_controls()
 
-    @discord.ui.select(
-        placeholder="Open a full reference",
-        options=[discord.SelectOption(label="Loading results", value="loading")],
-        row=0,
-    )
-    async def result_select(
+    async def open_result(
         self,
-        select: discord.ui.Select,
+        slot: int,
         interaction: discord.Interaction,
     ) -> None:
         async with self._state_lock:
-            entry = self._entry_for_value(select.values[0])
-            if entry is None:
+            result_index = self.search_page * self.results_per_page + slot
+            if result_index >= len(self.results):
                 await interaction.response.send_message(
                     MISSING_INDEXED_REFERENCE_MESSAGE,
                     ephemeral=True,
                 )
                 return
+            entry = self.results[result_index].entry
             try:
                 payload = self.payload_for(entry)
             except KeyError:
@@ -185,33 +204,20 @@ class ReferenceNavigatorView(discord.ui.View):
         self.previous_button.disabled = page == 0
         self.next_button.disabled = page >= page_count - 1
         self.back_button.disabled = not self.history
-        self.result_select.disabled = self.mode != "search"
-        self.result_select.options = self._search_options()
-
-    def _search_options(self) -> list[discord.SelectOption]:
         start = self.search_page * self.results_per_page
-        page_results = self.results[start : start + self.results_per_page]
-        return [
-            discord.SelectOption(
-                label=f"{result.entry.name} — {result.entry.reference_type.label}"[
-                    :100
-                ],
-                value=result.entry.value,
-                description=result.excerpt.replace("*", "").replace("\\", "")[:100],
+        for slot, button in enumerate(self.result_buttons):
+            result_index = start + slot
+            has_result = result_index < len(self.results)
+            button.label = str(result_index + 1) if has_result else "—"
+            button.disabled = (
+                self.mode != "search"
+                or not has_result
             )
-            for result in page_results
-        ]
 
     def _page_position(self) -> tuple[int, int]:
         if self.mode == "search":
             return self.search_page, len(self.search_pages)
         return self.reference_page, len(self.reference_pages)
-
-    def _entry_for_value(self, value: str) -> ReferenceEntry | None:
-        return next(
-            (result.entry for result in self.results if result.entry.value == value),
-            None,
-        )
 
     def _snapshot(self) -> NavigationSnapshot:
         return NavigationSnapshot(
