@@ -1,3 +1,4 @@
+import asyncio
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
@@ -48,6 +49,13 @@ async def view():
     def reference_pages(entry, payload):
         return [embed(f"{entry.name} page 1"), embed(f"{entry.name} page 2")]
 
+    def related_for(entry):
+        if entry.value == results[0].entry.value:
+            return [results[1].entry]
+        if entry.value == results[1].entry.value:
+            return [results[0].entry]
+        return []
+
     return ReferenceNavigatorView(
         owner_id=42,
         query="rule",
@@ -55,6 +63,7 @@ async def view():
         search_pages=[embed("Search 1"), embed("Search 2")],
         payload_for=payload_for,
         reference_pages=reference_pages,
+        related_for=related_for,
         results_per_page=5,
         timeout=300,
     )
@@ -141,6 +150,85 @@ async def test_new_navigation_after_back_clears_forward_history(view):
 
 
 @pytest.mark.asyncio
+async def test_related_reference_uses_history_and_back_restores_source(view):
+    source = interaction()
+    await view.result_buttons[0].callback(source)
+
+    assert [option.value for option in view.related_select.options] == [
+        "rule:rule-1"
+    ]
+    view.related_select._interaction = source
+    view.related_select._selected_values = ["rule:rule-1"]
+    await view.related_select.callback(source)
+
+    assert view.reference_entry.index == "rule-1"
+    assert view.current_embed.title == "Rule 1 page 1"
+
+    await view.back_button.callback(source)
+    assert view.reference_entry.index == "rule-0"
+    assert view.current_embed.title == "Rule 0 page 1"
+
+
+@pytest.mark.asyncio
+async def test_missing_related_payload_preserves_current_reference(view):
+    source = interaction()
+    await view.result_buttons[0].callback(source)
+    original_payload_for = view.payload_for
+    view.payload_for = lambda entry: (
+        (_ for _ in ()).throw(KeyError(entry.value))
+        if entry.index == "rule-1"
+        else original_payload_for(entry)
+    )
+    view.related_select._interaction = source
+    view.related_select._selected_values = ["rule:rule-1"]
+
+    await view.related_select.callback(source)
+
+    assert view.reference_entry.index == "rule-0"
+    source.response.send_message.assert_awaited_once_with(
+        MISSING_INDEXED_REFERENCE_MESSAGE,
+        ephemeral=True,
+    )
+
+
+@pytest.mark.asyncio
+async def test_concurrent_result_clicks_only_open_one_reference(view):
+    first = interaction()
+    second = interaction()
+
+    await asyncio.gather(
+        view.result_buttons[0].callback(first),
+        view.result_buttons[1].callback(second),
+    )
+
+    assert view.mode == "reference"
+    assert (
+        first.response.edit_message.await_count
+        + second.response.edit_message.await_count
+        == 1
+    )
+    assert (
+        first.response.send_message.await_count
+        + second.response.send_message.await_count
+        == 1
+    )
+
+
+@pytest.mark.asyncio
+async def test_timeout_disables_all_controls(view):
+    message = SimpleNamespace(
+        flags=SimpleNamespace(ephemeral=False),
+        edit=AsyncMock(),
+    )
+    view._message = message
+
+    await view.on_timeout()
+
+    assert all(item.disabled for item in view.children)
+    message.edit.assert_awaited_once_with(view=view)
+
+
+@pytest.mark.asyncio
 async def test_navigation_rejects_other_users_privately(view):
     source = interaction(user_id=99)
 
@@ -171,6 +259,30 @@ async def test_missing_indexed_reference_does_not_change_state(view):
 def test_component_layout_stays_within_discord_limits(view):
     components = view.to_components()
 
-    assert len(view.children) == 10
-    assert len(components) == 2
+    assert len(view.children) == 11
+    assert len(components) == 3
     assert len(view.result_buttons) == 5
+
+
+@pytest.mark.asyncio
+async def test_navigator_can_start_as_direct_reference_without_search_buttons():
+    source_entry = result(0).entry
+    related_entry = result(1).entry
+    view = ReferenceNavigatorView(
+        owner_id=42,
+        query="",
+        results=[],
+        search_pages=[],
+        payload_for=lambda entry: {"name": entry.name, "desc": "Full text."},
+        reference_pages=lambda entry, payload: [embed(entry.name)],
+        related_for=lambda entry: [related_entry] if entry == source_entry else [],
+        results_per_page=5,
+        timeout=300,
+        initial_reference=source_entry,
+        initial_reference_pages=[embed(source_entry.name)],
+    )
+
+    assert view.mode == "reference"
+    assert not view.result_buttons
+    assert view.related_select.disabled is False
+    assert view.current_embed.title == source_entry.name

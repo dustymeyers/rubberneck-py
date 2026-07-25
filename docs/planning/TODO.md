@@ -25,18 +25,18 @@ belong in `ROADMAP.md`.
 - [x] Keep search and selected-reference navigation in one response.
 - [x] Build one navigation view that renders search and reference states without
   losing page history.
-- [ ] Extend the navigation view to related-entry states without losing page
+- [x] Extend the navigation view to related-entry states without losing page
   history.
-- [ ] Display deterministic related rules or conditions on reference responses.
-- [ ] Handle missing related resources without breaking navigation.
-- [ ] Disable or replace stale controls when the interaction expires.
+- [x] Display deterministic related rules or conditions on reference responses.
+- [x] Handle missing related resources without breaking navigation.
+- [x] Disable or replace stale controls when the interaction expires.
 
 ### Verification
 
 - [x] Add search-result selection and full-reference tests.
 - [x] Add forward, back, and page-state restoration tests.
-- [ ] Add missing-relation, expired-control, and interaction-ownership tests.
-- [ ] Add concurrent-user and repeated-click interaction tests.
+- [x] Add missing-relation, expired-control, and interaction-ownership tests.
+- [x] Add concurrent-user and repeated-click interaction tests.
 - [ ] Manually verify search-to-reference-to-search navigation in Discord.
 - [ ] Confirm every acceptance criterion in Roadmap Feature Block 3.
 

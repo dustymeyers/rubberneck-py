@@ -8,7 +8,6 @@ from typing import Annotated, Any
 import discord
 from discord.commands import SlashCommandGroup
 from discord.ext import commands
-from discord.ext.pages import Paginator
 from dotenv import load_dotenv
 
 from cogs.reference_navigation import ReferenceNavigatorView
@@ -25,6 +24,7 @@ from service.reference_search import (
     ReferenceSearchIndex,
     SearchResult,
 )
+from service.reference_relations import ReferenceRelations
 
 
 RULES_GROUP_DESCRIPTION = "Look up rules, conditions, and other SRD references."
@@ -232,6 +232,7 @@ class Rules(commands.Cog):
         self.client = client or DnDAPI()
         self.catalog = ReferenceCatalog(self.client)
         self.search_index = ReferenceSearchIndex(self.client)
+        self.relations = ReferenceRelations()
         self._reference_load_lock = asyncio.Lock()
 
     async def load_references(self) -> None:
@@ -258,6 +259,15 @@ class Rules(commands.Cog):
                     )
                     await asyncio.sleep(REFERENCE_RETRY_DELAY_SECONDS)
                 else:
+                    missing_relations = self.relations.missing_targets(
+                        self.catalog.entries
+                    )
+                    if missing_relations:
+                        logger.warning(
+                            "Ignoring %s missing related-reference targets: %s",
+                            len(missing_relations),
+                            ", ".join(sorted(missing_relations)),
+                        )
                     logger.info(
                         "Loaded %s SRD references for autocomplete and full-text search",
                         len(self.catalog.entries),
@@ -327,6 +337,10 @@ class Rules(commands.Cog):
             search_pages=embeds,
             payload_for=self.search_index.payload_for,
             reference_pages=reference_embeds,
+            related_for=lambda entry: self.relations.related(
+                entry,
+                self.catalog.entries,
+            ),
             results_per_page=SEARCH_RESULTS_PER_PAGE,
             timeout=PAGINATOR_TIMEOUT_SECONDS,
         )
@@ -357,15 +371,23 @@ class Rules(commands.Cog):
         try:
             entry, payload = await self.catalog.resolve(term, reference_type)
             embeds = reference_embeds(entry, payload, legacy_alias=legacy_alias)
-            if len(embeds) == 1:
-                await ctx.respond(embed=embeds[0])
-            else:
-                paginator = Paginator(
-                    pages=embeds,
-                    show_disabled=False,
-                    timeout=PAGINATOR_TIMEOUT_SECONDS,
-                )
-                await paginator.respond(ctx.interaction, ephemeral=False)
+            view = ReferenceNavigatorView(
+                owner_id=ctx.author.id,
+                query="",
+                results=[],
+                search_pages=[],
+                payload_for=self.search_index.payload_for,
+                reference_pages=reference_embeds,
+                related_for=lambda selected: self.relations.related(
+                    selected,
+                    self.catalog.entries,
+                ),
+                results_per_page=SEARCH_RESULTS_PER_PAGE,
+                timeout=PAGINATOR_TIMEOUT_SECONDS,
+                initial_reference=entry,
+                initial_reference_pages=embeds,
+            )
+            await ctx.respond(embed=embeds[0], view=view)
         except ResourceNotFound:
             await ctx.respond(
                 self._not_found_message(reference_type),

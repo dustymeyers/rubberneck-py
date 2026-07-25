@@ -124,3 +124,10 @@ mode are disabled.
 Added browser-style Forward navigation. Back and Forward now preserve complete
 snapshots, including the selected reference and page, while taking a new path
 after Back clears forward history.
+
+Added curated related-reference data for common attack, cover, movement, damage,
+spellcasting, and condition flows. Reference responses opened from either
+search or direct lookup now expose a labeled related-entry selector. Related
+navigation uses the same history and indexed payloads, filters missing targets,
+serializes concurrent clicks, rejects stale controls, and disables components
+at timeout.

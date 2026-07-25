@@ -41,6 +41,10 @@ def cog():
         search=MagicMock(return_value=[]),
         payload_for=MagicMock(),
     )
+    result.relations = SimpleNamespace(
+        missing_targets=MagicMock(return_value=set()),
+        related=MagicMock(return_value=[]),
+    )
     return result
 
 
@@ -202,13 +206,13 @@ async def test_search_uses_one_navigator_for_multiple_pages(cog, ctx):
 async def test_reference_response_handles_single_and_paginated_results(
     cog,
     ctx,
-    monkeypatch,
 ):
     entry = search_result().entry
     cog.catalog.resolve.return_value = (entry, {"name": "Rule 1", "desc": "Short."})
 
     await cog._respond_with_reference(ctx, "rule-1")
     assert ctx.respond.await_args.kwargs["embed"].description == "Short."
+    assert ctx.respond.await_args.kwargs["view"].mode == "reference"
 
     ctx.respond.reset_mock()
     long_description = ("Long sentence. " * 300).strip()
@@ -216,14 +220,11 @@ async def test_reference_response_handles_single_and_paginated_results(
         entry,
         {"name": "Rule 1", "desc": long_description},
     )
-    paginator = SimpleNamespace(respond=AsyncMock())
-    paginator_class = MagicMock(return_value=paginator)
-    monkeypatch.setattr(rules_module, "Paginator", paginator_class)
-
     await cog._respond_with_reference(ctx, "rule-1")
 
-    assert len(paginator_class.call_args.kwargs["pages"]) > 1
-    paginator.respond.assert_awaited_once_with(ctx.interaction, ephemeral=False)
+    response = ctx.respond.await_args.kwargs
+    assert len(response["view"].reference_pages) > 1
+    assert response["embed"] is response["view"].reference_pages[0]
 
 
 @pytest.mark.asyncio

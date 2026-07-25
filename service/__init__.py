@@ -11,6 +11,7 @@ from .reference_catalog import (
     ReferenceType,
 )
 from .reference_search import InvalidSearchQuery, ReferenceSearchIndex, SearchResult
+from .reference_relations import ReferenceRelations
 
 __all__ = [
     "DnDAPIClient",
@@ -29,4 +30,5 @@ __all__ = [
     "InvalidSearchQuery",
     "ReferenceSearchIndex",
     "SearchResult",
+    "ReferenceRelations",
 ]
