@@ -21,6 +21,6 @@ def test_production_cog_loader_uses_only_configured_extensions():
     main.load_production_cogs(bot)
 
     assert bot.load_extension.call_args_list == [
-        (("cogs.bestiary",), {}),
-        (("cogs.rules",), {}),
+        (("rubberneck.cogs.bestiary",), {}),
+        (("rubberneck.cogs.rules",), {}),
     ]

@@ -1,7 +1,7 @@
 import pytest
 
-from service.reference_catalog import CONDITION, RULE, ReferenceEntry
-from service.reference_search import (
+from rubberneck.services.reference_catalog import CONDITION, RULE, ReferenceEntry
+from rubberneck.services.reference_search import (
     MAX_SEARCH_RESULTS,
     InvalidSearchQuery,
     ReferenceSearchIndex,

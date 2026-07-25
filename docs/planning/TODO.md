@@ -5,5 +5,4 @@ belong in `ROADMAP.md`.
 
 ## Maintenance Backlog
 
-- [ ] Review the legacy root layout and choose a proper application package
-  structure.
+No maintenance items are currently queued.

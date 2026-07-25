@@ -11,9 +11,13 @@ from discord.ext import commands
 from discord.ext.pages import Paginator
 from dotenv import load_dotenv
 
-from logger import logger
-from service.api_client import DnDAPI, DnDAPIError, ResourceNotFound
-from service.reference_catalog import ReferenceCatalog, ReferenceEntry, ReferenceType
+from rubberneck.logging import logger
+from rubberneck.services.api_client import DnDAPI, DnDAPIError, ResourceNotFound
+from rubberneck.services.reference_catalog import (
+    ReferenceCatalog,
+    ReferenceEntry,
+    ReferenceType,
+)
 
 MONSTER = ReferenceType(key="monster", label="Monster", endpoint="monsters")
 MONSTERS_PER_PAGE = 20
@@ -161,10 +165,12 @@ class Bestiary(commands.Cog):
                     await asyncio.sleep(MONSTER_RETRY_DELAY_SECONDS)
                 else:
                     logger.info(
-                        "Loaded %s SRD monsters and %s autocomplete queries in %.1f ms",
+                        "Loaded %s SRD monsters and %s autocomplete queries "
+                        "in %.1f ms (%.1f KiB)",
                         len(self.catalog.entries),
                         self.catalog.autocomplete_metrics.query_count,
                         self.catalog.autocomplete_metrics.build_milliseconds,
+                        self.catalog.autocomplete_metrics.index_bytes / 1024,
                     )
                     return
 

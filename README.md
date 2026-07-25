@@ -125,42 +125,15 @@ ruff format .
 ruff check .
 ```
 
-4. To stop the redis-server,
-    - if using wsl, use the command `sudo service redis-server stop`
-    
-### running in production 
-1. *cd* into the working directory, and execute main.py.
+### running in production
+
+From the repository root, run the application package:
 
 ```shell
-    python main.py
+python -m rubberneck
 ```
 
-2. The rest of the production plan doesn't exist yet since there has not been a full release.
-
-
-
-- dnd_discord_bot/
-    - bot/
-        - __init__.py
-        - main.py
-    - modules/
-        - __init__.py
-        - monsters.py
-        - spells.py
-        - rules.py
-    - data/
-        - (optional: store data files)
-    - requirements.txt
-    - .gitignore
-
-Here's a brief explanation of each directory:
-
-bot/: This directory contains the main files for your Discord bot.
-__init__.py: Makes the bot directory a Python package.
-main.py: Contains the code for setting up the Discord bot, handling events, and integrating modules.
-modules/: This directory contains separate modules for different functionalities like monsters, spells, and rules.
-__init__.py: Makes the modules directory a Python package.
-monsters.py, spells.py, rules.py: Modules for accessing information about monsters, spells, rules, etc. from the DnD 5e API.
-data/: You can store any data files or resources that your bot might need here.
-requirements.txt: A file that lists the Python dependencies your project needs. You can generate this file using pip freeze > requirements.txt.
-.gitignore: A file that specifies which files and directories to ignore when using version control with Git.
+`python main.py` remains as a compatibility launcher. Application code lives in
+the `rubberneck` package: `rubberneck.cogs` contains Discord presentation and
+commands, while `rubberneck.services` contains API, catalog, search, and
+relationship logic.

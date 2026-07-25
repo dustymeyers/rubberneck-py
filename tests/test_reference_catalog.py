@@ -3,8 +3,13 @@ from time import perf_counter
 import pytest
 import pytest_asyncio
 
-from service.api_client import ResourceNotFound, ResourceReference
-from service.reference_catalog import CONDITION, RULE, ReferenceCatalog, ReferenceEntry
+from rubberneck.services.api_client import ResourceNotFound, ResourceReference
+from rubberneck.services.reference_catalog import (
+    CONDITION,
+    RULE,
+    ReferenceCatalog,
+    ReferenceEntry,
+)
 
 
 class FakeClient:
@@ -126,3 +131,4 @@ async def test_warm_autocomplete_lookup_stays_below_five_milliseconds(catalog):
 
     assert percentile_95 < 5
     assert catalog.autocomplete_metrics.query_count == len(catalog.autocomplete_index)
+    assert catalog.autocomplete_metrics.index_bytes > 0

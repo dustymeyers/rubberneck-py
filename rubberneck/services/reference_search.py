@@ -7,8 +7,8 @@ import re
 import unicodedata
 from dataclasses import dataclass
 
-from service.api_client import DnDAPI
-from service.reference_catalog import ReferenceEntry
+from rubberneck.services.api_client import DnDAPI
+from rubberneck.services.reference_catalog import ReferenceEntry
 
 MIN_SEARCH_CHARACTERS = 3
 MIN_SEARCH_TOKEN_LENGTH = 2

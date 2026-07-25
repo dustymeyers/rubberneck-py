@@ -12,8 +12,8 @@ def test_production_packages_do_not_import_redis(monkeypatch):
 
     monkeypatch.setattr(builtins, "__import__", reject_redis)
 
-    import cogs
-    import service
+    import rubberneck.cogs
+    import rubberneck.services
 
-    importlib.reload(cogs)
-    importlib.reload(service)
+    importlib.reload(rubberneck.cogs)
+    importlib.reload(rubberneck.services)

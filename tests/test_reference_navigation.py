@@ -6,13 +6,13 @@ import discord
 import pytest
 import pytest_asyncio
 
-from cogs.reference_navigation import (
+from rubberneck.cogs.reference_navigation import (
     MISSING_INDEXED_REFERENCE_MESSAGE,
     NAVIGATION_OWNER_MESSAGE,
     ReferenceNavigatorView,
 )
-from service.reference_catalog import RULE, ReferenceEntry
-from service.reference_search import SearchResult
+from rubberneck.services.reference_catalog import RULE, ReferenceEntry
+from rubberneck.services.reference_search import SearchResult
 
 
 def result(number):

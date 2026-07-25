@@ -1,5 +1,5 @@
-from service.reference_catalog import CONDITION, RULE, ReferenceEntry
-from service.reference_relations import ReferenceRelations
+from rubberneck.services.reference_catalog import CONDITION, RULE, ReferenceEntry
+from rubberneck.services.reference_relations import ReferenceRelations
 
 
 def entry(index, reference_type=RULE):

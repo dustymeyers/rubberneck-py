@@ -5,9 +5,9 @@ Discord autocomplete has two independently observable latency components:
 1. The local callback, which normalizes the query and reads a precomputed index.
 2. Discord client debounce and network round trips, which the bot cannot control.
 
-The catalog logs its index construction time and indexed query count at startup.
-The warm local callback target is a 95th percentile below 5 milliseconds. The
-test suite measures that target over 1,000 lookups.
+The catalog logs its index construction time, indexed query count, and estimated
+owned memory at startup. The warm local callback target is a 95th percentile
+below 5 milliseconds. The test suite measures that target over 1,000 lookups.
 
 The index is built once when references load. It incrementally records exact,
 prefix, and substring candidates instead of rescanning the entire catalog for

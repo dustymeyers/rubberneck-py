@@ -9,8 +9,8 @@ from typing import Any
 
 import discord
 
-from service.reference_catalog import ReferenceEntry
-from service.reference_search import SearchResult
+from rubberneck.services.reference_catalog import ReferenceEntry
+from rubberneck.services.reference_search import SearchResult
 
 NAVIGATION_OWNER_MESSAGE = "Only the person who ran this command can use its controls."
 MISSING_INDEXED_REFERENCE_MESSAGE = (

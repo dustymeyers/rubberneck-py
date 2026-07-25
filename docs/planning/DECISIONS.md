@@ -4,6 +4,18 @@ This is an append-only summary of decisions that affect future implementation.
 If a decision changes, add a new entry that supersedes the old one rather than
 silently rewriting history.
 
+## 2026-07-24 — Use a Single Application Package
+
+**Decision:** Runtime code lives under the `rubberneck` package. Discord
+commands belong in `rubberneck.cogs`, reusable integration and indexing logic
+belongs in `rubberneck.services`, and `python -m rubberneck` is the canonical
+entry point. The root `main.py` remains only as a compatibility launcher.
+
+**Reason:** The prior root-level `cogs`, `service`, `models`, and helper modules
+mixed active and obsolete code and made import side effects difficult to
+control. One explicit package boundary makes production imports, tests, and
+future packaging predictable.
+
 ## 2026-07-16 — Build Vertical Slices
 
 **Decision:** Modernize one complete user-facing path at a time, beginning with

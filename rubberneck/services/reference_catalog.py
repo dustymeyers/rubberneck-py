@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 import asyncio
+import sys
 from dataclasses import dataclass
 from time import perf_counter
 
 import discord
 
-from service.api_client import DnDAPI, ResourceNotFound
+from rubberneck.services.api_client import DnDAPI, ResourceNotFound
 
 AUTOCOMPLETE_LIMIT = 25
 AUTOCOMPLETE_LABEL_LIMIT = 100
@@ -49,6 +50,7 @@ class AutocompleteMetrics:
     build_milliseconds: float
     query_count: int
     choice_count: int
+    index_bytes: int
 
 
 class ReferenceCatalog:
@@ -63,7 +65,7 @@ class ReferenceCatalog:
         self.reference_types = reference_types
         self.entries: list[ReferenceEntry] = []
         self.autocomplete_index: dict[str, tuple[discord.OptionChoice, ...]] = {}
-        self.autocomplete_metrics = AutocompleteMetrics(0.0, 0, 0)
+        self.autocomplete_metrics = AutocompleteMetrics(0.0, 0, 0, 0)
 
     async def load(self) -> None:
         resource_lists = await asyncio.gather(
@@ -167,8 +169,26 @@ class ReferenceCatalog:
             build_milliseconds=(perf_counter() - started) * 1000,
             query_count=len(index),
             choice_count=sum(len(choices) for choices in index.values()),
+            index_bytes=self._index_size(index),
         )
         return index
+
+    @staticmethod
+    def _index_size(
+        index: dict[str, tuple[discord.OptionChoice, ...]],
+    ) -> int:
+        """Estimate memory owned by the index without traversing library state."""
+        return sys.getsizeof(index) + sum(
+            sys.getsizeof(key)
+            + sys.getsizeof(choices)
+            + sum(
+                sys.getsizeof(choice)
+                + sys.getsizeof(choice.name)
+                + sys.getsizeof(choice.value)
+                for choice in choices
+            )
+            for key, choices in index.items()
+        )
 
     def _entries_for(
         self, reference_type: ReferenceType | None

@@ -1,4 +1,4 @@
-from cogs.rules import (
+from rubberneck.cogs.rules import (
     EMPTY_REFERENCE_DESCRIPTION,
     RULE_PAGE_DESCRIPTION_LIMIT,
     Rules,
@@ -9,8 +9,8 @@ from cogs.rules import (
     search_result_embeds,
     split_description,
 )
-from service.reference_catalog import CONDITION, RULE, ReferenceEntry
-from service.reference_search import SearchResult
+from rubberneck.services.reference_catalog import CONDITION, RULE, ReferenceEntry
+from rubberneck.services.reference_search import SearchResult
 
 
 class TestRuleFormatting:

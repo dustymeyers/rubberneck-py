@@ -10,17 +10,17 @@ from discord.commands import SlashCommandGroup
 from discord.ext import commands
 from dotenv import load_dotenv
 
-from cogs.reference_navigation import ReferenceNavigatorView
-from logger import logger
-from service.api_client import DnDAPI, DnDAPIError, ResourceNotFound
-from service.reference_catalog import (
+from rubberneck.cogs.reference_navigation import ReferenceNavigatorView
+from rubberneck.logging import logger
+from rubberneck.services.api_client import DnDAPI, DnDAPIError, ResourceNotFound
+from rubberneck.services.reference_catalog import (
     RULE,
     ReferenceCatalog,
     ReferenceEntry,
     ReferenceType,
 )
-from service.reference_relations import ReferenceRelations
-from service.reference_search import (
+from rubberneck.services.reference_relations import ReferenceRelations
+from rubberneck.services.reference_search import (
     InvalidSearchQuery,
     ReferenceSearchIndex,
     SearchResult,
@@ -323,10 +323,11 @@ class Rules(commands.Cog):
                         )
                     logger.info(
                         "Loaded %s SRD references and %s autocomplete queries "
-                        "in %.1f ms",
+                        "in %.1f ms (%.1f KiB)",
                         len(self.catalog.entries),
                         self.catalog.autocomplete_metrics.query_count,
                         self.catalog.autocomplete_metrics.build_milliseconds,
+                        self.catalog.autocomplete_metrics.index_bytes / 1024,
                     )
                     return
 

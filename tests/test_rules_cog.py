@@ -3,17 +3,21 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-import cogs.rules as rules_module
-from cogs.rules import (
+import rubberneck.cogs.rules as rules_module
+from rubberneck.cogs.rules import (
     NO_SEARCH_RESULTS_MESSAGE,
     REFERENCE_NOT_FOUND_MESSAGE,
     RULE_NOT_FOUND_MESSAGE,
     SEARCH_NOT_READY_MESSAGE,
     Rules,
 )
-from service.api_client import DnDAPIError, ResourceNotFound
-from service.reference_catalog import RULE, AutocompleteMetrics, ReferenceEntry
-from service.reference_search import InvalidSearchQuery, SearchResult
+from rubberneck.services.api_client import DnDAPIError, ResourceNotFound
+from rubberneck.services.reference_catalog import (
+    RULE,
+    AutocompleteMetrics,
+    ReferenceEntry,
+)
+from rubberneck.services.reference_search import InvalidSearchQuery, SearchResult
 
 
 @pytest.fixture
@@ -34,7 +38,7 @@ def cog():
         load=AsyncMock(),
         choices=MagicMock(return_value=[]),
         resolve=AsyncMock(),
-        autocomplete_metrics=AutocompleteMetrics(1.25, 100, 200),
+        autocomplete_metrics=AutocompleteMetrics(1.25, 100, 200, 4096),
     )
     result.search_index = SimpleNamespace(
         documents=(),

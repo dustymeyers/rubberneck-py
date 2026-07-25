@@ -3,8 +3,8 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-import cogs.bestiary as bestiary_module
-from cogs.bestiary import (
+import rubberneck.cogs.bestiary as bestiary_module
+from rubberneck.cogs.bestiary import (
     MONSTER,
     MONSTER_NOT_FOUND_MESSAGE,
     MONSTERS_NOT_READY_MESSAGE,
@@ -13,8 +13,8 @@ from cogs.bestiary import (
     monster_embed,
     monster_list_embeds,
 )
-from service.api_client import DnDAPIError, ResourceNotFound
-from service.reference_catalog import AutocompleteMetrics, ReferenceEntry
+from rubberneck.services.api_client import DnDAPIError, ResourceNotFound
+from rubberneck.services.reference_catalog import AutocompleteMetrics, ReferenceEntry
 
 
 def monster_entry(number: int = 1) -> ReferenceEntry:
@@ -43,7 +43,7 @@ def cog():
         load=AsyncMock(),
         choices=MagicMock(return_value=[]),
         resolve=AsyncMock(),
-        autocomplete_metrics=AutocompleteMetrics(1.0, 10, 20),
+        autocomplete_metrics=AutocompleteMetrics(1.0, 10, 20, 1024),
     )
     return result
 

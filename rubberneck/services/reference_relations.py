@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from service.reference_catalog import ReferenceEntry
+from rubberneck.services.reference_catalog import ReferenceEntry
 
 MAX_RELATED_REFERENCES = 5
 
