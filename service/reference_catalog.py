@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass
+from time import perf_counter
 
 import discord
 
@@ -43,6 +44,13 @@ class ReferenceEntry:
         return label[:AUTOCOMPLETE_LABEL_LIMIT]
 
 
+@dataclass(frozen=True)
+class AutocompleteMetrics:
+    build_milliseconds: float
+    query_count: int
+    choice_count: int
+
+
 class ReferenceCatalog:
     """Loads, resolves, and indexes heterogeneous SRD reference resources."""
 
@@ -55,6 +63,7 @@ class ReferenceCatalog:
         self.reference_types = reference_types
         self.entries: list[ReferenceEntry] = []
         self.autocomplete_index: dict[str, tuple[discord.OptionChoice, ...]] = {}
+        self.autocomplete_metrics = AutocompleteMetrics(0.0, 0, 0)
 
     async def load(self) -> None:
         resource_lists = await asyncio.gather(
@@ -118,37 +127,47 @@ class ReferenceCatalog:
         return min(ranked, key=lambda item: (item[0], item[1]))[2]
 
     def _build_autocomplete_index(self) -> dict[str, tuple[discord.OptionChoice, ...]]:
+        started = perf_counter()
         index: dict[str, tuple[discord.OptionChoice, ...]] = {}
         scopes = ((None, self.entries),) + tuple(
             (reference_type, self._entries_for(reference_type))
             for reference_type in self.reference_types
         )
         for reference_type, entries in scopes:
-            queries = {""}
-            for entry in entries:
-                for value in (
+            candidates: dict[str, dict[int, int]] = {"": {}}
+            for position, entry in enumerate(entries):
+                candidates[""][position] = 1
+                for value in {
                     self._normalise(entry.name),
                     self._normalise(entry.index),
-                ):
-                    queries.update(
-                        value[start:end]
-                        for start in range(len(value))
-                        for end in range(start + 1, len(value) + 1)
-                    )
-            for query in queries:
-                ranked = sorted(
-                    (
-                        (rank, position, entry)
-                        for position, entry in enumerate(entries)
-                        if (rank := self._rank(entry, query)) is not None
-                    ),
-                    key=lambda item: (item[0], item[1]),
+                }:
+                    for start in range(len(value)):
+                        for end in range(start + 1, len(value) + 1):
+                            query = value[start:end]
+                            rank = 0 if query == value else 1 if start == 0 else 2
+                            query_candidates = candidates.setdefault(query, {})
+                            query_candidates[position] = min(
+                                rank,
+                                query_candidates.get(position, rank),
+                            )
+            for query, query_candidates in candidates.items():
+                ranked_positions = sorted(
+                    query_candidates,
+                    key=lambda position: (query_candidates[position], position),
                 )
                 choices = tuple(
-                    discord.OptionChoice(name=entry.choice_name, value=entry.value)
-                    for _, _, entry in ranked[:AUTOCOMPLETE_LIMIT]
+                    discord.OptionChoice(
+                        name=entries[position].choice_name,
+                        value=entries[position].value,
+                    )
+                    for position in ranked_positions[:AUTOCOMPLETE_LIMIT]
                 )
                 index[self._autocomplete_key(query, reference_type)] = choices
+        self.autocomplete_metrics = AutocompleteMetrics(
+            build_milliseconds=(perf_counter() - started) * 1000,
+            query_count=len(index),
+            choice_count=sum(len(choices) for choices in index.values()),
+        )
         return index
 
     def _entries_for(

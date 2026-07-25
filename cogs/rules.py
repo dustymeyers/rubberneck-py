@@ -322,8 +322,11 @@ class Rules(commands.Cog):
                             ", ".join(sorted(missing_relations)),
                         )
                     logger.info(
-                        "Loaded %s SRD references for autocomplete and full-text search",
+                        "Loaded %s SRD references and %s autocomplete queries "
+                        "in %.1f ms",
                         len(self.catalog.entries),
+                        self.catalog.autocomplete_metrics.query_count,
+                        self.catalog.autocomplete_metrics.build_milliseconds,
                     )
                     return
 

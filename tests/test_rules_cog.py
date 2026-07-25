@@ -12,7 +12,7 @@ from cogs.rules import (
     Rules,
 )
 from service.api_client import DnDAPIError, ResourceNotFound
-from service.reference_catalog import RULE, ReferenceEntry
+from service.reference_catalog import RULE, AutocompleteMetrics, ReferenceEntry
 from service.reference_search import InvalidSearchQuery, SearchResult
 
 
@@ -34,6 +34,7 @@ def cog():
         load=AsyncMock(),
         choices=MagicMock(return_value=[]),
         resolve=AsyncMock(),
+        autocomplete_metrics=AutocompleteMetrics(1.25, 100, 200),
     )
     result.search_index = SimpleNamespace(
         documents=(),

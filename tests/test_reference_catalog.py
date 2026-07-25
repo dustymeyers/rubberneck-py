@@ -1,3 +1,5 @@
+from time import perf_counter
+
 import pytest
 import pytest_asyncio
 
@@ -89,3 +91,38 @@ def test_ambiguous_names_have_distinct_typed_choices():
         ("Shared — Rule", "rule:shared"),
         ("Shared — Condition", "condition:shared"),
     ]
+
+
+@pytest.mark.asyncio
+async def test_autocomplete_index_matches_dynamic_ranking(catalog):
+    queries = {"", "a", "attack", "king-an", "visible", "not-present"}
+
+    for reference_type in (None, RULE, CONDITION):
+        entries = catalog._entries_for(reference_type)
+        for query in queries:
+            normalized = catalog._normalise(query)
+            expected = sorted(
+                (
+                    (rank, position, entry.value)
+                    for position, entry in enumerate(entries)
+                    if (rank := catalog._rank(entry, normalized)) is not None
+                ),
+                key=lambda item: (item[0], item[1]),
+            )
+            actual = [choice.value for choice in catalog.choices(query, reference_type)]
+            assert actual == [value for _, _, value in expected]
+
+
+@pytest.mark.asyncio
+async def test_warm_autocomplete_lookup_stays_below_five_milliseconds(catalog):
+    samples = []
+    for _ in range(1_000):
+        started = perf_counter()
+        catalog.choices("attack")
+        samples.append((perf_counter() - started) * 1_000)
+
+    samples.sort()
+    percentile_95 = samples[int(len(samples) * 0.95)]
+
+    assert percentile_95 < 5
+    assert catalog.autocomplete_metrics.query_count == len(catalog.autocomplete_index)
