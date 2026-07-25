@@ -11,6 +11,7 @@ from discord.ext import commands
 from discord.ext.pages import Paginator
 from dotenv import load_dotenv
 
+from cogs.reference_navigation import ReferenceNavigatorView
 from logger import logger
 from service.api_client import DnDAPI, DnDAPIError, ResourceNotFound
 from service.reference_catalog import (
@@ -319,15 +320,17 @@ class Rules(commands.Cog):
             return
 
         embeds = search_result_embeds(text, results)
-        if len(embeds) == 1:
-            await ctx.respond(embed=embeds[0])
-        else:
-            paginator = Paginator(
-                pages=embeds,
-                show_disabled=False,
-                timeout=PAGINATOR_TIMEOUT_SECONDS,
-            )
-            await paginator.respond(ctx.interaction, ephemeral=False)
+        view = ReferenceNavigatorView(
+            owner_id=ctx.author.id,
+            query=text,
+            results=results,
+            search_pages=embeds,
+            payload_for=self.search_index.payload_for,
+            reference_pages=reference_embeds,
+            results_per_page=SEARCH_RESULTS_PER_PAGE,
+            timeout=PAGINATOR_TIMEOUT_SECONDS,
+        )
+        await ctx.respond(embed=embeds[0], view=view)
 
     @discord.slash_command(name="rule", description=RULE_COMMAND_DESCRIPTION)
     async def rule(

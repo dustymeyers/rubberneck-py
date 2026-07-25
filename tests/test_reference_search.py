@@ -51,8 +51,13 @@ async def test_index_loads_full_descriptions_then_searches_without_network():
     await index.load(entries)
     calls_after_load = list(client.calls)
     results = index.search("attack target see")
+    payload = index.payload_for(entries[1])
 
     assert results[0].entry.index == "unseen-attackers"
+    assert payload["name"] == "Invisible"
+    assert payload["desc"] == [
+        "An invisible creature is impossible to see without magic."
+    ]
     assert client.calls == calls_after_load
 
 

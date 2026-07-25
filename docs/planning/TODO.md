@@ -7,31 +7,33 @@ belong in `ROADMAP.md`.
 
 ### Design
 
-- [ ] Choose the Discord control used to select a search result.
-- [ ] Define navigation state for query, search page, selected reference, and
+- [x] Choose the Discord control used to select a search result.
+- [x] Define navigation state for query, search page, selected reference, and
   reference page.
-- [ ] Map the navigation design to Discord component and row limits.
-- [ ] Decide whether full-reference navigation uses already indexed content or
+- [x] Map the navigation design to Discord component and row limits.
+- [x] Decide whether full-reference navigation uses already indexed content or
   performs a cached API lookup.
-- [ ] Define how related references are stored and ranked.
-- [ ] Define interaction ownership and expired-control behavior.
+- [x] Define how related references are stored and ranked.
+- [x] Define interaction ownership and expired-control behavior.
 
 ### Implementation
 
-- [ ] Let a user open a full reference directly from `/rules search` results.
-- [ ] Reuse lookup formatting and pagination for the selected reference.
-- [ ] Add back navigation to the originating search result page.
-- [ ] Keep search, reference, and related-rule navigation in one response.
-- [ ] Build one navigation view that renders search, reference, and related-entry
-  states without losing page history.
+- [x] Let a user open a full reference directly from `/rules search` results.
+- [x] Reuse lookup formatting and pagination for the selected reference.
+- [x] Add back navigation to the originating search result page.
+- [x] Keep search and selected-reference navigation in one response.
+- [x] Build one navigation view that renders search and reference states without
+  losing page history.
+- [ ] Extend the navigation view to related-entry states without losing page
+  history.
 - [ ] Display deterministic related rules or conditions on reference responses.
 - [ ] Handle missing related resources without breaking navigation.
 - [ ] Disable or replace stale controls when the interaction expires.
 
 ### Verification
 
-- [ ] Add search-result selection and full-reference tests.
-- [ ] Add forward, back, and page-state restoration tests.
+- [x] Add search-result selection and full-reference tests.
+- [x] Add forward, back, and page-state restoration tests.
 - [ ] Add missing-relation, expired-control, and interaction-ownership tests.
 - [ ] Add concurrent-user and repeated-click interaction tests.
 - [ ] Manually verify search-to-reference-to-search navigation in Discord.

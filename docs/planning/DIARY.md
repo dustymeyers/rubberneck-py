@@ -98,3 +98,20 @@ Added autocomplete responsiveness to the reference quality-of-life roadmap.
 Future work will measure local callback latency separately from Discord's
 end-to-end delay, quantify index construction and memory costs, and optimize
 only after identifying whether the bot or platform debounce is the bottleneck.
+
+## 2026-07-24 — Designed the Reference Navigator
+
+Feature Block 3 will use one owner-restricted custom Discord view as a state
+machine for search results, full references, back history, and related entries.
+The current search page supplies five select-menu options, navigation controls
+share a second row, and indexed source content opens without another API
+request. Concurrent state changes will be locked and expired controls disabled.
+Related-entry data will remain separate, explicitly ordered, and validated
+against the catalog.
+
+Implemented the first navigation slice. Successful search responses now use an
+owner-restricted custom view with a five-result selector and shared page
+controls. Selecting a result opens its complete indexed source through the
+existing lookup formatter without a network request; back restores the exact
+search page. Tests cover selection, reference pagination, page restoration,
+missing indexed content, ownership, single-message edits, and component limits.

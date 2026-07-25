@@ -43,6 +43,8 @@ class SearchDocument:
     title_tokens: tuple[str, ...]
     description_text: str
     description_tokens: tuple[str, ...]
+    source_name: str = ""
+    source_description: str | tuple[str, ...] = ""
 
 
 @dataclass(frozen=True)
@@ -99,10 +101,37 @@ class ReferenceSearchIndex:
         ranked.sort(key=lambda item: item[:4])
         return [item[4] for item in ranked[:limit]]
 
+    def payload_for(self, entry: ReferenceEntry) -> dict:
+        """Return locally indexed source content for a reference."""
+        document = next(
+            (
+                document
+                for document in self.documents
+                if document.entry.value == entry.value
+            ),
+            None,
+        )
+        if document is None:
+            raise KeyError(entry.value)
+        description = document.source_description
+        return {
+            "index": entry.index,
+            "name": document.source_name or entry.name,
+            "desc": list(description) if isinstance(description, tuple) else description,
+            "url": entry.url,
+        }
+
     @staticmethod
     def _document(entry: ReferenceEntry, payload: dict) -> SearchDocument:
-        description = plain_text(_description_text(payload.get("desc")))
-        title_text = normalize_text(payload.get("name") or entry.name)
+        source_description = payload.get("desc") or ""
+        stored_description = (
+            tuple(source_description)
+            if isinstance(source_description, list)
+            else source_description
+        )
+        description = plain_text(_description_text(source_description))
+        source_name = payload.get("name") or entry.name
+        title_text = normalize_text(source_name)
         description_text = normalize_text(description)
         return SearchDocument(
             entry=entry,
@@ -111,6 +140,8 @@ class ReferenceSearchIndex:
             title_tokens=tuple(title_text.split()),
             description_text=description_text,
             description_tokens=tuple(description_text.split()),
+            source_name=source_name,
+            source_description=stored_description,
         )
 
 

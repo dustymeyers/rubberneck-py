@@ -119,3 +119,39 @@ instead of running a search.
 database search dependency. Requiring all terms keeps results relevant, prefix
 matching tolerates remembered word endings, and bounded excerpts and result
 pages remain readable during play.
+
+## 2026-07-24 — One Stateful Reference Navigator
+
+**Decision:** Feature Block 3 uses one custom `discord.ui.View` to render search
+results, full references, and later related references in the same message. It
+does not compose or replace multiple Pycord `Paginator` instances.
+
+Search mode displays one string-select menu containing the five results on the
+current page. A second component row contains previous, page indicator, next,
+and back controls. This remains below Discord's limits of five component rows,
+25 components per view, and 25 options per string select. Reference mode reuses
+the same page controls, disables result selection, and enables back navigation.
+
+Navigation state records the original query, immutable ranked results, search
+page, current reference and reference page, and a history stack. State changes
+are serialized with an async lock. Back restores the complete prior snapshot,
+including its page, instead of recomputing a default view.
+
+The full source name and description loaded for search indexing are retained in
+the local index. Opening a search result uses that indexed content and the
+existing reference formatter without another API request.
+
+Related entries will live in a separate typed relationship table keyed by
+catalog value. Relationships are explicitly ordered, deterministic, and
+validated against the loaded catalog. Missing targets are omitted. Presentation
+code consumes the resulting entries but does not own relationship data.
+
+Only the user who invoked the command may operate its controls. Other users
+receive private guidance. Controls time out after the existing five-minute
+interaction window and are disabled on the message. Repeated or concurrent
+clicks are serialized so an older callback cannot overwrite newer state.
+
+**Reason:** A single state owner makes forward and back behavior testable,
+preserves page context, avoids extra channel messages, and leaves enough
+component capacity for related-reference selection without coupling navigation
+to Pycord paginator internals.

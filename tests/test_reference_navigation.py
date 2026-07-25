@@ -1,0 +1,135 @@
+from types import SimpleNamespace
+from unittest.mock import AsyncMock
+
+import discord
+import pytest
+import pytest_asyncio
+
+from cogs.reference_navigation import (
+    MISSING_INDEXED_REFERENCE_MESSAGE,
+    NAVIGATION_OWNER_MESSAGE,
+    ReferenceNavigatorView,
+)
+from service.reference_catalog import RULE, ReferenceEntry
+from service.reference_search import SearchResult
+
+
+def result(number):
+    entry = ReferenceEntry(
+        f"rule-{number}",
+        f"Rule {number}",
+        f"/rule-sections/rule-{number}",
+        RULE,
+    )
+    return SearchResult(entry, 100 - number, f"Excerpt {number}")
+
+
+def embed(title):
+    return discord.Embed(title=title, description=f"{title} description")
+
+
+def interaction(user_id=42):
+    return SimpleNamespace(
+        user=SimpleNamespace(id=user_id),
+        response=SimpleNamespace(
+            edit_message=AsyncMock(),
+            send_message=AsyncMock(),
+        ),
+    )
+
+
+@pytest_asyncio.fixture
+async def view():
+    results = [result(number) for number in range(6)]
+
+    def payload_for(entry):
+        return {"name": entry.name, "desc": "Full reference text."}
+
+    def reference_pages(entry, payload):
+        return [embed(f"{entry.name} page 1"), embed(f"{entry.name} page 2")]
+
+    return ReferenceNavigatorView(
+        owner_id=42,
+        query="rule",
+        results=results,
+        search_pages=[embed("Search 1"), embed("Search 2")],
+        payload_for=payload_for,
+        reference_pages=reference_pages,
+        results_per_page=5,
+        timeout=300,
+    )
+
+
+@pytest.mark.asyncio
+async def test_search_page_controls_update_options_and_restore_page(view):
+    source = interaction()
+    await view.next_button.callback(source)
+
+    assert view.search_page == 1
+    assert [option.value for option in view.result_select.options] == ["rule:rule-5"]
+
+    view.result_select._interaction = source
+    view.result_select._selected_values = ["rule:rule-5"]
+    await view.result_select.callback(source)
+    assert view.mode == "reference"
+    assert view.current_embed.title == "Rule 5 page 1"
+
+    await view.back_button.callback(source)
+    assert view.mode == "search"
+    assert view.search_page == 1
+    assert view.current_embed.title == "Search 2"
+
+
+@pytest.mark.asyncio
+async def test_reference_page_controls_reuse_same_message(view):
+    source = interaction()
+    view.result_select._interaction = source
+    view.result_select._selected_values = ["rule:rule-0"]
+
+    await view.result_select.callback(source)
+    await view.next_button.callback(source)
+
+    assert view.reference_page == 1
+    assert view.current_embed.title == "Rule 0 page 2"
+    assert source.response.edit_message.await_count == 2
+    assert all(
+        call.kwargs["view"] is view
+        for call in source.response.edit_message.await_args_list
+    )
+
+
+@pytest.mark.asyncio
+async def test_navigation_rejects_other_users_privately(view):
+    source = interaction(user_id=99)
+
+    assert await view.interaction_check(source) is False
+    await view.on_check_failure(source)
+
+    source.response.send_message.assert_awaited_once_with(
+        NAVIGATION_OWNER_MESSAGE,
+        ephemeral=True,
+    )
+
+
+@pytest.mark.asyncio
+async def test_missing_indexed_reference_does_not_change_state(view):
+    source = interaction()
+    view.result_select._interaction = source
+    view.result_select._selected_values = ["rule:not-present"]
+
+    await view.result_select.callback(source)
+
+    assert view.mode == "search"
+    assert not view.history
+    source.response.send_message.assert_awaited_once_with(
+        MISSING_INDEXED_REFERENCE_MESSAGE,
+        ephemeral=True,
+    )
+
+
+def test_component_layout_stays_within_discord_limits(view):
+    components = view.to_components()
+
+    assert len(view.children) == 5
+    assert len(components) == 2
+    assert len(view.result_select.options) == 5

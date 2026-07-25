@@ -22,6 +22,7 @@ def ctx():
         defer=AsyncMock(),
         respond=AsyncMock(),
         interaction=object(),
+        author=SimpleNamespace(id=123),
     )
 
 
@@ -38,6 +39,7 @@ def cog():
         documents=(),
         load=AsyncMock(),
         search=MagicMock(return_value=[]),
+        payload_for=MagicMock(),
     )
     return result
 
@@ -178,24 +180,22 @@ async def test_search_responds_with_one_embed(cog, ctx):
 
     response = ctx.respond.await_args.kwargs
     assert response["embed"].fields[0].value == "Matching text."
+    assert response["view"].owner_id == ctx.author.id
 
 
 @pytest.mark.asyncio
-async def test_search_uses_one_paginator_for_multiple_pages(cog, ctx, monkeypatch):
+async def test_search_uses_one_navigator_for_multiple_pages(cog, ctx):
     cog.search_index.documents = (object(),)
     cog.search_index.search.return_value = [
         search_result(number) for number in range(6)
     ]
-    paginator = SimpleNamespace(respond=AsyncMock())
-    paginator_class = MagicMock(return_value=paginator)
-    monkeypatch.setattr(rules_module, "Paginator", paginator_class)
 
     await Rules.search.callback(cog, ctx, "matching")
 
-    assert len(paginator_class.call_args.kwargs["pages"]) == 2
-    await_args = paginator.respond.await_args
-    assert await_args.args == (ctx.interaction,)
-    assert await_args.kwargs == {"ephemeral": False}
+    response = ctx.respond.await_args.kwargs
+    assert response["embed"].title.endswith("(1/2)")
+    assert len(response["view"].search_pages) == 2
+    assert len(response["view"].result_select.options) == 5
 
 
 @pytest.mark.asyncio

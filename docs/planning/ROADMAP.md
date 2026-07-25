@@ -83,7 +83,7 @@ official title.
 
 ## Feature Block 3: Related-Rule Navigation
 
-**Status:** Planned
+**Status:** In Progress
 
 Make it easy to move between concepts commonly referenced together during play.
 Search results should also act as a navigable discovery surface rather than a
