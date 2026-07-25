@@ -7,12 +7,16 @@ I want to create a DnD 5e supporting discord bot which can make requests to dnd5
 
 - `/rule name` looks up a rule section from the 2014 D&D 5e SRD. Begin typing
   to see matching rules such as **Cover**, **Resting**, or **Making an Attack**.
-  API responses are fetched asynchronously and cached in memory for one hour;
-  Redis is not required for this command.
+  API responses are fetched asynchronously and cached in memory for one hour.
 - `/rules lookup term` searches both rule sections and conditions.
 - `/rules search text` searches inside locally indexed rule and condition
   descriptions. Queries require at least three characters and return up to 20
   ranked results in one paginated response.
+- `/monsters` browses the available 2014 SRD monsters.
+- `/monster name` looks up a monster with cached autocomplete.
+
+All production commands use bounded in-process caching. Redis is not required
+to install, start, or run the bot.
 
 `/rule` remains available as a compatibility alias while the unified `/rules`
 commands evolve.
@@ -27,9 +31,6 @@ to propagate a newly created command.
 Some kind of IDE that is able to run python. I suggest Visual Studio Code (VSC).
 
 [Python 3.12.4](https://www.python.org/downloads/release/python-3124/)
-
-[Redis](https://redis.io/docs/latest/operate/oss_and_stack/install/install-redis/)
-
 
 See the requirements.txt for a list of python library dependencies.
 
@@ -53,10 +54,16 @@ See the requirements.txt for a list of python library dependencies.
     source venv/bin/activate
 ```
 
-3. Install the dependencies.
+3. Install runtime dependencies.
 
 ```shell
-    pip install-r requirements.txt
+    pip install -r requirements.txt
+```
+
+For development and tests, install the development set instead:
+
+```shell
+    pip install -r requirements-dev.txt
 ```
 
 4. (Optional) - Remove password requirement for sudo commands. From the Linux shell, do the following:
@@ -111,42 +118,22 @@ See the requirements.txt for a list of python library dependencies.
 pytest
 ```
 
-4. To stop the redis-server,
-    - if using wsl, use the command `sudo service redis-server stop`
-    
-### running in production 
-1. *cd* into the working directory, and execute main.py.
+### formatting and linting
 
 ```shell
-    python main.py
+ruff format .
+ruff check .
 ```
 
-2. The rest of the production plan doesn't exist yet since there has not been a full release.
+### running in production
 
+From the repository root, run the application package:
 
+```shell
+python -m rubberneck
+```
 
-- dnd_discord_bot/
-    - bot/
-        - __init__.py
-        - main.py
-    - modules/
-        - __init__.py
-        - monsters.py
-        - spells.py
-        - rules.py
-    - data/
-        - (optional: store data files)
-    - requirements.txt
-    - .gitignore
-
-Here's a brief explanation of each directory:
-
-bot/: This directory contains the main files for your Discord bot.
-__init__.py: Makes the bot directory a Python package.
-main.py: Contains the code for setting up the Discord bot, handling events, and integrating modules.
-modules/: This directory contains separate modules for different functionalities like monsters, spells, and rules.
-__init__.py: Makes the modules directory a Python package.
-monsters.py, spells.py, rules.py: Modules for accessing information about monsters, spells, rules, etc. from the DnD 5e API.
-data/: You can store any data files or resources that your bot might need here.
-requirements.txt: A file that lists the Python dependencies your project needs. You can generate this file using pip freeze > requirements.txt.
-.gitignore: A file that specifies which files and directories to ignore when using version control with Git.
+`python main.py` remains as a compatibility launcher. Application code lives in
+the `rubberneck` package: `rubberneck.cogs` contains Discord presentation and
+commands, while `rubberneck.services` contains API, catalog, search, and
+relationship logic.

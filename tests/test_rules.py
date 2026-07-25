@@ -1,4 +1,4 @@
-from cogs.rules import (
+from rubberneck.cogs.rules import (
     EMPTY_REFERENCE_DESCRIPTION,
     RULE_PAGE_DESCRIPTION_LIMIT,
     Rules,
@@ -9,8 +9,8 @@ from cogs.rules import (
     search_result_embeds,
     split_description,
 )
-from service.reference_catalog import CONDITION, RULE, ReferenceEntry
-from service.reference_search import SearchResult
+from rubberneck.services.reference_catalog import CONDITION, RULE, ReferenceEntry
+from rubberneck.services.reference_search import SearchResult
 
 
 class TestRuleFormatting:
@@ -69,7 +69,9 @@ def test_rules_group_registers_lookup_and_search():
 
 
 def test_rule_markdown_removes_duplicate_title_and_formats_headings():
-    source = "# Making an Attack\n\nIntro text.\n\n#### Modifiers to the Roll\n\nDetails."
+    source = (
+        "# Making an Attack\n\nIntro text.\n\n#### Modifiers to the Roll\n\nDetails."
+    )
 
     result = format_rule_description("Making an Attack", source)
 
@@ -92,7 +94,10 @@ def test_condition_embed_identifies_its_reference_type():
 
     embed = reference_embeds(
         entry,
-        {"name": "Restrained", "desc": ["Speed becomes 0.", "Attacks have disadvantage."]},
+        {
+            "name": "Restrained",
+            "desc": ["Speed becomes 0.", "Attacks have disadvantage."],
+        },
     )[0]
 
     assert embed.title == "Restrained — Condition"
@@ -107,6 +112,36 @@ def test_reference_formatter_handles_list_markdown():
     )
 
     assert result == "**Effects**\n\nSpeed becomes 0."
+
+
+def test_reference_formatter_translates_markdown_tables_to_labeled_bullets():
+    source = """##### Travel Pace
+
+| Pace | Distance per: Minute | Hour | Day | Effect |
+|------|----------------------|------|-----|--------|
+| Fast | 400 feet | 4 miles | 30 miles | -5 passive Perception |
+| Normal | 300 feet | 3 miles | 24 miles | - |
+"""
+
+    result = format_reference_description("Movement", source)
+
+    assert "| Pace |" not in result
+    assert "**Travel Pace**" in result
+    assert (
+        """**Fast**
+> **Distance per Minute:** 400 feet
+> **Hour:** 4 miles
+> **Day:** 30 miles
+> **Effect:** -5 passive Perception"""
+        in result
+    )
+    assert (
+        """**Normal**
+> **Distance per Minute:** 300 feet
+> **Hour:** 3 miles
+> **Day:** 24 miles"""
+        in result
+    )
 
 
 def test_search_results_are_grouped_five_per_page():

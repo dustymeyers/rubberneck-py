@@ -83,7 +83,7 @@ official title.
 
 ## Feature Block 3: Related-Rule Navigation
 
-**Status:** Planned
+**Status:** Complete
 
 Make it easy to move between concepts commonly referenced together during play.
 Search results should also act as a navigable discovery surface rather than a
@@ -99,19 +99,21 @@ dead-end summary.
 
 ### Acceptance Criteria
 
-- [ ] Each search result provides a direct way to open its full reference text.
-- [ ] Opening a search result reuses lookup formatting and long-text pagination.
-- [ ] Back navigation restores the originating search query and result page.
-- [ ] Search-to-reference navigation edits one response instead of creating
+- [x] Each search result provides a direct way to open its full reference text.
+- [x] Opening a search result reuses lookup formatting and long-text pagination.
+- [x] Back navigation restores the originating search query and result page.
+- [x] Forward navigation restores the reference and page most recently left by
+  back navigation.
+- [x] Search-to-reference navigation edits one response instead of creating
   additional channel messages.
-- [ ] Rule responses can display relevant related rules or conditions.
-- [ ] A user can navigate to a related entry without typing a new command.
-- [ ] Navigation edits or paginates one response instead of flooding a channel.
-- [ ] Back navigation returns to the previous entry and page.
-- [ ] Related entries are deterministic and explainable, not randomly selected.
-- [ ] Missing or removed related resources do not break the response.
-- [ ] The relationship data is stored separately from command presentation.
-- [ ] Tests cover forward navigation, back navigation, missing relations, and
+- [x] Rule responses can display relevant related rules or conditions.
+- [x] A user can navigate to a related entry without typing a new command.
+- [x] Navigation edits or paginates one response instead of flooding a channel.
+- [x] Back navigation returns to the previous entry and page.
+- [x] Related entries are deterministic and explainable, not randomly selected.
+- [x] Missing or removed related resources do not break the response.
+- [x] The relationship data is stored separately from command presentation.
+- [x] Tests cover forward navigation, back navigation, missing relations, and
   interaction ownership.
 
 ## Feature Block 4: Reference Quality-of-Life

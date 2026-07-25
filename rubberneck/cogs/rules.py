@@ -8,23 +8,23 @@ from typing import Annotated, Any
 import discord
 from discord.commands import SlashCommandGroup
 from discord.ext import commands
-from discord.ext.pages import Paginator
 from dotenv import load_dotenv
 
-from logger import logger
-from service.api_client import DnDAPI, DnDAPIError, ResourceNotFound
-from service.reference_catalog import (
+from rubberneck.cogs.reference_navigation import ReferenceNavigatorView
+from rubberneck.logging import logger
+from rubberneck.services.api_client import DnDAPI, DnDAPIError, ResourceNotFound
+from rubberneck.services.reference_catalog import (
     RULE,
     ReferenceCatalog,
     ReferenceEntry,
     ReferenceType,
 )
-from service.reference_search import (
+from rubberneck.services.reference_relations import ReferenceRelations
+from rubberneck.services.reference_search import (
     InvalidSearchQuery,
     ReferenceSearchIndex,
     SearchResult,
 )
-
 
 RULES_GROUP_DESCRIPTION = "Look up rules, conditions, and other SRD references."
 LOOKUP_COMMAND_DESCRIPTION = "Look up a rule or condition in the D&D 5e SRD."
@@ -39,7 +39,9 @@ REFERENCE_NOT_FOUND_MESSAGE = (
 RULE_NOT_FOUND_MESSAGE = (
     "I couldn't find that SRD rule. Start typing the name and choose a suggestion."
 )
-SEARCH_NOT_READY_MESSAGE = "The local SRD search index is not ready yet. Try again shortly."
+SEARCH_NOT_READY_MESSAGE = (
+    "The local SRD search index is not ready yet. Try again shortly."
+)
 NO_SEARCH_RESULTS_MESSAGE = (
     "I couldn't find that text in the indexed SRD references. "
     "Try fewer or more specific words."
@@ -80,10 +82,64 @@ def format_reference_description(name: str, value: str | list[str] | None) -> st
             lines.pop(0)
 
     formatted: list[str] = []
-    for line in lines:
+    index = 0
+    while index < len(lines):
+        line = lines[index]
+        if (
+            _is_markdown_table_row(line)
+            and index + 1 < len(lines)
+            and _is_markdown_table_separator(lines[index + 1])
+        ):
+            table_lines, index = _format_markdown_table(lines, index)
+            formatted.extend(table_lines)
+            continue
         heading = re.match(r"^\s*#{1,6}\s+(.+?)\s*$", line)
         formatted.append(f"**{heading.group(1)}**" if heading else line)
+        index += 1
     return "\n".join(formatted).strip()
+
+
+def _is_markdown_table_row(line: str) -> bool:
+    stripped = line.strip()
+    return stripped.startswith("|") and stripped.endswith("|")
+
+
+def _table_cells(line: str) -> list[str]:
+    return [cell.strip() for cell in line.strip().strip("|").split("|")]
+
+
+def _is_markdown_table_separator(line: str) -> bool:
+    if not _is_markdown_table_row(line):
+        return False
+    cells = _table_cells(line)
+    return bool(cells) and all(
+        re.fullmatch(r":?-{3,}:?", cell) is not None for cell in cells
+    )
+
+
+def _format_markdown_table(
+    lines: list[str],
+    start: int,
+) -> tuple[list[str], int]:
+    """Translate a Markdown table into mobile-friendly labeled bullet rows."""
+    headers = _table_cells(lines[start])
+    output: list[str] = []
+    index = start + 2
+    while index < len(lines) and _is_markdown_table_row(lines[index]):
+        cells = _table_cells(lines[index])
+        primary = cells[0] if cells else "Entry"
+        details = [
+            (f"> **{headers[position].replace(':', '').strip()}:** {cell}")
+            for position, cell in enumerate(cells[1:], start=1)
+            if position < len(headers) and cell not in ("", "-")
+        ]
+        output.append(f"**{primary}**")
+        output.extend(details)
+        output.append("")
+        index += 1
+    if output and not output[-1]:
+        output.pop()
+    return output, index
 
 
 def format_rule_description(name: str, text: str) -> str:
@@ -212,9 +268,7 @@ def search_result_embeds(
                 value=result.excerpt,
                 inline=False,
             )
-        embed.set_footer(
-            text=f"{SRD_NAME} - {len(results)} result(s) - {SOURCE_NAME}"
-        )
+        embed.set_footer(text=f"{SRD_NAME} - {len(results)} result(s) - {SOURCE_NAME}")
         pages.append(embed)
     return pages
 
@@ -231,6 +285,7 @@ class Rules(commands.Cog):
         self.client = client or DnDAPI()
         self.catalog = ReferenceCatalog(self.client)
         self.search_index = ReferenceSearchIndex(self.client)
+        self.relations = ReferenceRelations()
         self._reference_load_lock = asyncio.Lock()
 
     async def load_references(self) -> None:
@@ -257,9 +312,22 @@ class Rules(commands.Cog):
                     )
                     await asyncio.sleep(REFERENCE_RETRY_DELAY_SECONDS)
                 else:
+                    missing_relations = self.relations.missing_targets(
+                        self.catalog.entries
+                    )
+                    if missing_relations:
+                        logger.warning(
+                            "Ignoring %s missing related-reference targets: %s",
+                            len(missing_relations),
+                            ", ".join(sorted(missing_relations)),
+                        )
                     logger.info(
-                        "Loaded %s SRD references for autocomplete and full-text search",
+                        "Loaded %s SRD references and %s autocomplete queries "
+                        "in %.1f ms (%.1f KiB)",
                         len(self.catalog.entries),
+                        self.catalog.autocomplete_metrics.query_count,
+                        self.catalog.autocomplete_metrics.build_milliseconds,
+                        self.catalog.autocomplete_metrics.index_bytes / 1024,
                     )
                     return
 
@@ -319,15 +387,21 @@ class Rules(commands.Cog):
             return
 
         embeds = search_result_embeds(text, results)
-        if len(embeds) == 1:
-            await ctx.respond(embed=embeds[0])
-        else:
-            paginator = Paginator(
-                pages=embeds,
-                show_disabled=False,
-                timeout=PAGINATOR_TIMEOUT_SECONDS,
-            )
-            await paginator.respond(ctx.interaction, ephemeral=False)
+        view = ReferenceNavigatorView(
+            owner_id=ctx.author.id,
+            query=text,
+            results=results,
+            search_pages=embeds,
+            payload_for=self.search_index.payload_for,
+            reference_pages=reference_embeds,
+            related_for=lambda entry: self.relations.related(
+                entry,
+                self.catalog.entries,
+            ),
+            results_per_page=SEARCH_RESULTS_PER_PAGE,
+            timeout=PAGINATOR_TIMEOUT_SECONDS,
+        )
+        await ctx.respond(embed=embeds[0], view=view)
 
     @discord.slash_command(name="rule", description=RULE_COMMAND_DESCRIPTION)
     async def rule(
@@ -354,15 +428,23 @@ class Rules(commands.Cog):
         try:
             entry, payload = await self.catalog.resolve(term, reference_type)
             embeds = reference_embeds(entry, payload, legacy_alias=legacy_alias)
-            if len(embeds) == 1:
-                await ctx.respond(embed=embeds[0])
-            else:
-                paginator = Paginator(
-                    pages=embeds,
-                    show_disabled=False,
-                    timeout=PAGINATOR_TIMEOUT_SECONDS,
-                )
-                await paginator.respond(ctx.interaction, ephemeral=False)
+            view = ReferenceNavigatorView(
+                owner_id=ctx.author.id,
+                query="",
+                results=[],
+                search_pages=[],
+                payload_for=self.search_index.payload_for,
+                reference_pages=reference_embeds,
+                related_for=lambda selected: self.relations.related(
+                    selected,
+                    self.catalog.entries,
+                ),
+                results_per_page=SEARCH_RESULTS_PER_PAGE,
+                timeout=PAGINATOR_TIMEOUT_SECONDS,
+                initial_reference=entry,
+                initial_reference_pages=embeds,
+            )
+            await ctx.respond(embed=embeds[0], view=view)
         except ResourceNotFound:
             await ctx.respond(
                 self._not_found_message(reference_type),

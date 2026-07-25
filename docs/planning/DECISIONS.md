@@ -4,6 +4,18 @@ This is an append-only summary of decisions that affect future implementation.
 If a decision changes, add a new entry that supersedes the old one rather than
 silently rewriting history.
 
+## 2026-07-24 — Use a Single Application Package
+
+**Decision:** Runtime code lives under the `rubberneck` package. Discord
+commands belong in `rubberneck.cogs`, reusable integration and indexing logic
+belongs in `rubberneck.services`, and `python -m rubberneck` is the canonical
+entry point. The root `main.py` remains only as a compatibility launcher.
+
+**Reason:** The prior root-level `cogs`, `service`, `models`, and helper modules
+mixed active and obsolete code and made import side effects difficult to
+control. One explicit package boundary makes production imports, tests, and
+future packaging predictable.
+
 ## 2026-07-16 — Build Vertical Slices
 
 **Decision:** Modernize one complete user-facing path at a time, beginning with
@@ -119,3 +131,93 @@ instead of running a search.
 database search dependency. Requiring all terms keeps results relevant, prefix
 matching tolerates remembered word endings, and bounded excerpts and result
 pages remain readable during play.
+
+## 2026-07-24 — One Stateful Reference Navigator
+
+**Decision:** Feature Block 3 uses one custom `discord.ui.View` to render search
+results, full references, and later related references in the same message. It
+does not compose or replace multiple Pycord `Paginator` instances.
+
+Search mode displays one string-select menu containing the five results on the
+current page. A second component row contains previous, page indicator, next,
+and back controls. This remains below Discord's limits of five component rows,
+25 components per view, and 25 options per string select. Reference mode reuses
+the same page controls, disables result selection, and enables back navigation.
+
+Navigation state records the original query, immutable ranked results, search
+page, current reference and reference page, and a history stack. State changes
+are serialized with an async lock. Back restores the complete prior snapshot,
+including its page, instead of recomputing a default view.
+
+The full source name and description loaded for search indexing are retained in
+the local index. Opening a search result uses that indexed content and the
+existing reference formatter without another API request.
+
+Related entries will live in a separate typed relationship table keyed by
+catalog value. Relationships are explicitly ordered, deterministic, and
+validated against the loaded catalog. Missing targets are omitted. Presentation
+code consumes the resulting entries but does not own relationship data.
+
+Only the user who invoked the command may operate its controls. Other users
+receive private guidance. Controls time out after the existing five-minute
+interaction window and are disabled on the message. Repeated or concurrent
+clicks are serialized so an older callback cannot overwrite newer state.
+
+**Reason:** A single state owner makes forward and back behavior testable,
+preserves page context, avoids extra channel messages, and leaves enough
+component capacity for related-reference selection without coupling navigation
+to Pycord paginator internals.
+
+## 2026-07-24 — Numbered Search Result Buttons
+
+**Decision:** Numbered buttons supersede the search-result string selector from
+the previous navigator decision. Each search page displays five compact buttons
+whose numbers match the result headings. Missing slots are disabled, and all
+result buttons are disabled while a full reference is open.
+
+**Reason:** Embed text cannot trigger Discord interactions directly. Numbered
+buttons are the closest native interaction to clicking a result card, require
+one click instead of opening a menu, and fit exactly within one component row.
+The selector capacity remains available for future related-reference choices,
+where labels are more important than positional numbers.
+
+## 2026-07-24 — Bidirectional Navigation History
+
+**Decision:** The navigator provides both Back and Forward controls. Back pushes
+the current snapshot onto a forward-history stack before restoring the prior
+snapshot. Forward performs the inverse. Opening a different result or changing
+pages after going back clears forward history, matching browser navigation
+semantics.
+
+**Reason:** Once the response maintains navigation history, returning to a
+reference after inspecting the search page should not require selecting it
+again. Snapshot-based forward history restores the exact reference page and
+extends naturally to related-reference navigation.
+
+## 2026-07-24 — Discord-Friendly Tables and Traversable Relations
+
+**Decision:** Markdown tables from the SRD are rendered as labeled bullet rows
+rather than raw pipe syntax. The first column becomes the bold row label and
+remaining non-empty cells become semicolon-separated `heading: value` details.
+
+Curated relationship groups are traversable in both directions. A target can
+see its explicit source and the source's other targets, in stable declared
+order, subject to the five-entry display limit.
+
+**Reason:** Discord embeds do not render Markdown tables, and horizontal table
+layouts are especially poor on mobile. Labeled rows preserve the same
+information vertically. Bidirectional relationship groups let users continue
+exploring related concepts instead of reaching a dead end after one selection.
+
+## 2026-07-24 — Ruff and Separate Development Dependencies
+
+**Decision:** `requirements.txt` contains runtime dependencies only.
+`requirements-dev.txt` includes the runtime file and pins pytest, coverage, and
+Ruff tooling. Ruff owns import sorting and formatting for modern code using
+Python 3.12 and an 88-character line length. Explicitly preserved legacy and WIP
+modules remain excluded until their modernization work begins.
+
+**Reason:** Deployments should not install test and lint tooling, while
+contributors need one reproducible development install. One formatter and
+linter removes style ambiguity without mixing mechanical legacy cleanup into
+feature work.

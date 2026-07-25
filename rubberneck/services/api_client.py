@@ -52,7 +52,9 @@ class DnDAPI:
 
     async def list_resources(self, endpoint: str) -> list[ResourceReference]:
         payload = await self.get(endpoint)
-        return [ResourceReference.from_dict(item) for item in payload.get("results", [])]
+        return [
+            ResourceReference.from_dict(item) for item in payload.get("results", [])
+        ]
 
     async def get_resource(self, endpoint: str, index: str) -> dict[str, Any]:
         return await self.get(f"{endpoint}/{self.normalise_index(index)}")
@@ -78,12 +80,16 @@ class DnDAPI:
         url = f"{self.base_url}/{path}"
         try:
             async with self._session_factory(timeout=self.timeout) as session:
-                async with session.get(url, headers={"Accept": "application/json"}) as response:
+                async with session.get(
+                    url, headers={"Accept": "application/json"}
+                ) as response:
                     if response.status == 404:
                         raise ResourceNotFound(f"No SRD resource found for '{path}'.")
                     if response.status >= 400:
                         detail = await response.text()
-                        raise DnDAPIError(f"SRD API returned {response.status}: {detail[:200]}")
+                        raise DnDAPIError(
+                            f"SRD API returned {response.status}: {detail[:200]}"
+                        )
                     return await response.json()
         except (ResourceNotFound, DnDAPIError):
             raise

@@ -1,57 +1,8 @@
-from dotenv import load_dotenv
-from discord.ext import commands
-import os
-import discord
+"""Compatibility launcher for local development and existing deployments."""
 
-from logger import logger
+from rubberneck.app import PRODUCTION_COGS, bot, load_production_cogs, main
 
+__all__ = ["PRODUCTION_COGS", "bot", "load_production_cogs", "main"]
 
-load_dotenv()
-
-TOKEN = os.getenv("DISCORD_BOT_TOKEN")
-
-cogs_list = [
-    'bestiary',
-    'pagetest',
-    'rules'
-]
-
-# bot: Bot = Rubberneck(intents=discord.Intents.all())
-
-bot = commands.Bot(intents=discord.Intents.all())
-
-@bot.slash_command()
-async def ping(ctx):
-    await ctx.respond("Pong!")
-@bot.event
-async def on_ready():
-    logger.info("Logged in as %s", bot.user)
-
-
-@bot.event
-async def on_application_command_error(ctx, error):
-    """Log command failures and ensure Discord receives a response."""
-    original = getattr(error, "original", error)
-    logger.error(
-        "Application command /%s failed: %s",
-        getattr(ctx.command, "qualified_name", "unknown"),
-        original,
-        exc_info=(type(original), original, original.__traceback__),
-    )
-
-    message = "Something went wrong while running that command. The error has been logged."
-    try:
-        if ctx.interaction.response.is_done():
-            await ctx.send_followup(message, ephemeral=True)
-        else:
-            await ctx.respond(message, ephemeral=True)
-    except discord.HTTPException:
-        logger.exception("Could not send the command error response to Discord")
-
-if __name__ == '__main__': # import cogs from cogs folder
-    for extension in cogs_list:
-        bot.load_extension(f'cogs.{extension}')
-
-
-
-bot.run(TOKEN)
+if __name__ == "__main__":
+    main()

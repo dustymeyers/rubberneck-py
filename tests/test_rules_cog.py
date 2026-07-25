@@ -3,17 +3,21 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-import cogs.rules as rules_module
-from cogs.rules import (
+import rubberneck.cogs.rules as rules_module
+from rubberneck.cogs.rules import (
     NO_SEARCH_RESULTS_MESSAGE,
     REFERENCE_NOT_FOUND_MESSAGE,
     RULE_NOT_FOUND_MESSAGE,
     SEARCH_NOT_READY_MESSAGE,
     Rules,
 )
-from service.api_client import DnDAPIError, ResourceNotFound
-from service.reference_catalog import RULE, ReferenceEntry
-from service.reference_search import InvalidSearchQuery, SearchResult
+from rubberneck.services.api_client import DnDAPIError, ResourceNotFound
+from rubberneck.services.reference_catalog import (
+    RULE,
+    AutocompleteMetrics,
+    ReferenceEntry,
+)
+from rubberneck.services.reference_search import InvalidSearchQuery, SearchResult
 
 
 @pytest.fixture
@@ -22,6 +26,7 @@ def ctx():
         defer=AsyncMock(),
         respond=AsyncMock(),
         interaction=object(),
+        author=SimpleNamespace(id=123),
     )
 
 
@@ -33,11 +38,17 @@ def cog():
         load=AsyncMock(),
         choices=MagicMock(return_value=[]),
         resolve=AsyncMock(),
+        autocomplete_metrics=AutocompleteMetrics(1.25, 100, 200, 4096),
     )
     result.search_index = SimpleNamespace(
         documents=(),
         load=AsyncMock(),
         search=MagicMock(return_value=[]),
+        payload_for=MagicMock(),
+    )
+    result.relations = SimpleNamespace(
+        missing_targets=MagicMock(return_value=set()),
+        related=MagicMock(return_value=[]),
     )
     return result
 
@@ -178,37 +189,35 @@ async def test_search_responds_with_one_embed(cog, ctx):
 
     response = ctx.respond.await_args.kwargs
     assert response["embed"].fields[0].value == "Matching text."
+    assert response["view"].owner_id == ctx.author.id
 
 
 @pytest.mark.asyncio
-async def test_search_uses_one_paginator_for_multiple_pages(cog, ctx, monkeypatch):
+async def test_search_uses_one_navigator_for_multiple_pages(cog, ctx):
     cog.search_index.documents = (object(),)
     cog.search_index.search.return_value = [
         search_result(number) for number in range(6)
     ]
-    paginator = SimpleNamespace(respond=AsyncMock())
-    paginator_class = MagicMock(return_value=paginator)
-    monkeypatch.setattr(rules_module, "Paginator", paginator_class)
 
     await Rules.search.callback(cog, ctx, "matching")
 
-    assert len(paginator_class.call_args.kwargs["pages"]) == 2
-    await_args = paginator.respond.await_args
-    assert await_args.args == (ctx.interaction,)
-    assert await_args.kwargs == {"ephemeral": False}
+    response = ctx.respond.await_args.kwargs
+    assert response["embed"].title.endswith("(1/2)")
+    assert len(response["view"].search_pages) == 2
+    assert len(response["view"].result_buttons) == 5
 
 
 @pytest.mark.asyncio
 async def test_reference_response_handles_single_and_paginated_results(
     cog,
     ctx,
-    monkeypatch,
 ):
     entry = search_result().entry
     cog.catalog.resolve.return_value = (entry, {"name": "Rule 1", "desc": "Short."})
 
     await cog._respond_with_reference(ctx, "rule-1")
     assert ctx.respond.await_args.kwargs["embed"].description == "Short."
+    assert ctx.respond.await_args.kwargs["view"].mode == "reference"
 
     ctx.respond.reset_mock()
     long_description = ("Long sentence. " * 300).strip()
@@ -216,14 +225,11 @@ async def test_reference_response_handles_single_and_paginated_results(
         entry,
         {"name": "Rule 1", "desc": long_description},
     )
-    paginator = SimpleNamespace(respond=AsyncMock())
-    paginator_class = MagicMock(return_value=paginator)
-    monkeypatch.setattr(rules_module, "Paginator", paginator_class)
-
     await cog._respond_with_reference(ctx, "rule-1")
 
-    assert len(paginator_class.call_args.kwargs["pages"]) > 1
-    paginator.respond.assert_awaited_once_with(ctx.interaction, ephemeral=False)
+    response = ctx.respond.await_args.kwargs
+    assert len(response["view"].reference_pages) > 1
+    assert response["embed"] is response["view"].reference_pages[0]
 
 
 @pytest.mark.asyncio

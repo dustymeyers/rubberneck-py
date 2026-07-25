@@ -1,0 +1,1 @@
+"""Rubberneck Discord bot application."""

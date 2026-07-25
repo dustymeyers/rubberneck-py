@@ -3,13 +3,12 @@
 from __future__ import annotations
 
 import asyncio
-from dataclasses import dataclass
 import re
 import unicodedata
+from dataclasses import dataclass
 
-from service.api_client import DnDAPI
-from service.reference_catalog import ReferenceEntry
-
+from rubberneck.services.api_client import DnDAPI
+from rubberneck.services.reference_catalog import ReferenceEntry
 
 MIN_SEARCH_CHARACTERS = 3
 MIN_SEARCH_TOKEN_LENGTH = 2
@@ -43,6 +42,8 @@ class SearchDocument:
     title_tokens: tuple[str, ...]
     description_text: str
     description_tokens: tuple[str, ...]
+    source_name: str = ""
+    source_description: str | tuple[str, ...] = ""
 
 
 @dataclass(frozen=True)
@@ -67,8 +68,7 @@ class ReferenceSearchIndex:
             )
         )
         self.documents = tuple(
-            self._document(entry, payload)
-            for entry, payload in zip(entries, payloads)
+            self._document(entry, payload) for entry, payload in zip(entries, payloads)
         )
 
     def search(
@@ -99,10 +99,39 @@ class ReferenceSearchIndex:
         ranked.sort(key=lambda item: item[:4])
         return [item[4] for item in ranked[:limit]]
 
+    def payload_for(self, entry: ReferenceEntry) -> dict:
+        """Return locally indexed source content for a reference."""
+        document = next(
+            (
+                document
+                for document in self.documents
+                if document.entry.value == entry.value
+            ),
+            None,
+        )
+        if document is None:
+            raise KeyError(entry.value)
+        description = document.source_description
+        return {
+            "index": entry.index,
+            "name": document.source_name or entry.name,
+            "desc": list(description)
+            if isinstance(description, tuple)
+            else description,
+            "url": entry.url,
+        }
+
     @staticmethod
     def _document(entry: ReferenceEntry, payload: dict) -> SearchDocument:
-        description = plain_text(_description_text(payload.get("desc")))
-        title_text = normalize_text(payload.get("name") or entry.name)
+        source_description = payload.get("desc") or ""
+        stored_description = (
+            tuple(source_description)
+            if isinstance(source_description, list)
+            else source_description
+        )
+        description = plain_text(_description_text(source_description))
+        source_name = payload.get("name") or entry.name
+        title_text = normalize_text(source_name)
         description_text = normalize_text(description)
         return SearchDocument(
             entry=entry,
@@ -111,6 +140,8 @@ class ReferenceSearchIndex:
             title_tokens=tuple(title_text.split()),
             description_text=description_text,
             description_tokens=tuple(description_text.split()),
+            source_name=source_name,
+            source_description=stored_description,
         )
 
 
@@ -132,9 +163,7 @@ def parse_query(query: str) -> tuple[str, tuple[str, ...]]:
 def normalize_text(value: str) -> str:
     """Normalize text into case-folded Unicode letter and number tokens."""
     normalized = unicodedata.normalize("NFKC", value).casefold()
-    characters = (
-        character if character.isalnum() else " " for character in normalized
-    )
+    characters = (character if character.isalnum() else " " for character in normalized)
     return " ".join("".join(characters).split())
 
 
@@ -187,9 +216,7 @@ def _score(
     if all(description_matches):
         score += ALL_DESCRIPTION_TERMS_WEIGHT
     score += sum(
-        EXACT_DESCRIPTION_TERM_WEIGHT
-        if match == 2
-        else DESCRIPTION_PREFIX_TERM_WEIGHT
+        EXACT_DESCRIPTION_TERM_WEIGHT if match == 2 else DESCRIPTION_PREFIX_TERM_WEIGHT
         for match in description_matches
         if match
     )

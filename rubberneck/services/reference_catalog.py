@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 import asyncio
+import sys
 from dataclasses import dataclass
+from time import perf_counter
 
 import discord
 
-from service.api_client import DnDAPI, ResourceNotFound
-
+from rubberneck.services.api_client import DnDAPI, ResourceNotFound
 
 AUTOCOMPLETE_LIMIT = 25
 AUTOCOMPLETE_LABEL_LIMIT = 100
@@ -44,6 +45,14 @@ class ReferenceEntry:
         return label[:AUTOCOMPLETE_LABEL_LIMIT]
 
 
+@dataclass(frozen=True)
+class AutocompleteMetrics:
+    build_milliseconds: float
+    query_count: int
+    choice_count: int
+    index_bytes: int
+
+
 class ReferenceCatalog:
     """Loads, resolves, and indexes heterogeneous SRD reference resources."""
 
@@ -56,10 +65,14 @@ class ReferenceCatalog:
         self.reference_types = reference_types
         self.entries: list[ReferenceEntry] = []
         self.autocomplete_index: dict[str, tuple[discord.OptionChoice, ...]] = {}
+        self.autocomplete_metrics = AutocompleteMetrics(0.0, 0, 0, 0)
 
     async def load(self) -> None:
         resource_lists = await asyncio.gather(
-            *(self.client.list_resources(item.endpoint) for item in self.reference_types)
+            *(
+                self.client.list_resources(item.endpoint)
+                for item in self.reference_types
+            )
         )
         self.entries = [
             ReferenceEntry(
@@ -89,7 +102,9 @@ class ReferenceCatalog:
         entry = self.find(term, reference_type)
         if entry is None:
             raise ResourceNotFound(f"No SRD reference found for '{term}'.")
-        payload = await self.client.get_resource(entry.reference_type.endpoint, entry.index)
+        payload = await self.client.get_resource(
+            entry.reference_type.endpoint, entry.index
+        )
         return entry, payload
 
     def find(
@@ -114,40 +129,75 @@ class ReferenceCatalog:
         return min(ranked, key=lambda item: (item[0], item[1]))[2]
 
     def _build_autocomplete_index(self) -> dict[str, tuple[discord.OptionChoice, ...]]:
+        started = perf_counter()
         index: dict[str, tuple[discord.OptionChoice, ...]] = {}
         scopes = ((None, self.entries),) + tuple(
             (reference_type, self._entries_for(reference_type))
             for reference_type in self.reference_types
         )
         for reference_type, entries in scopes:
-            queries = {""}
-            for entry in entries:
-                for value in (self._normalise(entry.name), self._normalise(entry.index)):
-                    queries.update(
-                        value[start:end]
-                        for start in range(len(value))
-                        for end in range(start + 1, len(value) + 1)
-                    )
-            for query in queries:
-                ranked = sorted(
-                    (
-                        (rank, position, entry)
-                        for position, entry in enumerate(entries)
-                        if (rank := self._rank(entry, query)) is not None
-                    ),
-                    key=lambda item: (item[0], item[1]),
+            candidates: dict[str, dict[int, int]] = {"": {}}
+            for position, entry in enumerate(entries):
+                candidates[""][position] = 1
+                for value in {
+                    self._normalise(entry.name),
+                    self._normalise(entry.index),
+                }:
+                    for start in range(len(value)):
+                        for end in range(start + 1, len(value) + 1):
+                            query = value[start:end]
+                            rank = 0 if query == value else 1 if start == 0 else 2
+                            query_candidates = candidates.setdefault(query, {})
+                            query_candidates[position] = min(
+                                rank,
+                                query_candidates.get(position, rank),
+                            )
+            for query, query_candidates in candidates.items():
+                ranked_positions = sorted(
+                    query_candidates,
+                    key=lambda position: (query_candidates[position], position),
                 )
                 choices = tuple(
-                    discord.OptionChoice(name=entry.choice_name, value=entry.value)
-                    for _, _, entry in ranked[:AUTOCOMPLETE_LIMIT]
+                    discord.OptionChoice(
+                        name=entries[position].choice_name,
+                        value=entries[position].value,
+                    )
+                    for position in ranked_positions[:AUTOCOMPLETE_LIMIT]
                 )
                 index[self._autocomplete_key(query, reference_type)] = choices
+        self.autocomplete_metrics = AutocompleteMetrics(
+            build_milliseconds=(perf_counter() - started) * 1000,
+            query_count=len(index),
+            choice_count=sum(len(choices) for choices in index.values()),
+            index_bytes=self._index_size(index),
+        )
         return index
 
-    def _entries_for(self, reference_type: ReferenceType | None) -> list[ReferenceEntry]:
+    @staticmethod
+    def _index_size(
+        index: dict[str, tuple[discord.OptionChoice, ...]],
+    ) -> int:
+        """Estimate memory owned by the index without traversing library state."""
+        return sys.getsizeof(index) + sum(
+            sys.getsizeof(key)
+            + sys.getsizeof(choices)
+            + sum(
+                sys.getsizeof(choice)
+                + sys.getsizeof(choice.name)
+                + sys.getsizeof(choice.value)
+                for choice in choices
+            )
+            for key, choices in index.items()
+        )
+
+    def _entries_for(
+        self, reference_type: ReferenceType | None
+    ) -> list[ReferenceEntry]:
         if reference_type is None:
             return self.entries
-        return [entry for entry in self.entries if entry.reference_type == reference_type]
+        return [
+            entry for entry in self.entries if entry.reference_type == reference_type
+        ]
 
     def _decode_value(self, value: str) -> tuple[ReferenceType | None, str]:
         if REFERENCE_VALUE_SEPARATOR not in value:

@@ -98,3 +98,58 @@ Added autocomplete responsiveness to the reference quality-of-life roadmap.
 Future work will measure local callback latency separately from Discord's
 end-to-end delay, quantify index construction and memory costs, and optimize
 only after identifying whether the bot or platform debounce is the bottleneck.
+
+## 2026-07-24 — Designed the Reference Navigator
+
+Feature Block 3 will use one owner-restricted custom Discord view as a state
+machine for search results, full references, back history, and related entries.
+The current search page supplies five select-menu options, navigation controls
+share a second row, and indexed source content opens without another API
+request. Concurrent state changes will be locked and expired controls disabled.
+Related-entry data will remain separate, explicitly ordered, and validated
+against the catalog.
+
+Implemented the first navigation slice. Successful search responses now use an
+owner-restricted custom view with a five-result selector and shared page
+controls. Selecting a result opens its complete indexed source through the
+existing lookup formatter without a network request; back restores the exact
+search page. Tests cover selection, reference pagination, page restoration,
+missing indexed content, ownership, single-message edits, and component limits.
+
+Replaced the result selector with five page-aware numbered buttons after live
+interaction review. Their labels correspond to the numbered result cards, so a
+full reference opens in one click; empty page slots and all buttons in reference
+mode are disabled.
+
+Added browser-style Forward navigation. Back and Forward now preserve complete
+snapshots, including the selected reference and page, while taking a new path
+after Back clears forward history.
+
+Added curated related-reference data for common attack, cover, movement, damage,
+spellcasting, and condition flows. Reference responses opened from either
+search or direct lookup now expose a labeled related-entry selector. Related
+navigation uses the same history and indexed payloads, filters missing targets,
+serializes concurrent clicks, rejects stale controls, and disables components
+at timeout.
+
+Live review exposed two presentation issues. Raw SRD Markdown tables are now
+translated into labeled bullet rows for Discord, and relationship targets now
+inherit reverse and sibling links from their curated group so exploration can
+continue beyond a single hop.
+
+The first table translation was still too dense in live use. Table rows now
+render as separate vertical blocks with one quoted `heading: value` line per
+cell, trading some height for much faster scanning.
+
+Live Discord verification confirmed numbered search-result selection, full
+reference paging, exact Back and Forward restoration, multi-hop related
+navigation, single-message updates, and readable vertical table formatting.
+Feature Block 3 is complete.
+
+Isolated the legacy paginator demonstration cog from production startup as a
+maintenance cleanup. `main.py` now exposes an explicit production-cog loader,
+does not register `/pagetest`, and is safe to import without starting the bot.
+
+Separated runtime and development dependencies and added Ruff configuration for
+the modern codebase. Ruff now provides import sorting, linting, and formatting;
+legacy and WIP modules are explicitly excluded until they are modernized.
