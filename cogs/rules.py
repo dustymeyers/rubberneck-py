@@ -129,13 +129,19 @@ def _format_markdown_table(
         cells = _table_cells(lines[index])
         primary = cells[0] if cells else "Entry"
         details = [
-            f"{headers[position].rstrip(':')}: {cell}"
+            (
+                f"> **{headers[position].replace(':', '').strip()}:** "
+                f"{cell}"
+            )
             for position, cell in enumerate(cells[1:], start=1)
             if position < len(headers) and cell not in ("", "-")
         ]
-        suffix = f" {'; '.join(details)}" if details else ""
-        output.append(f"- **{primary}:**{suffix}")
+        output.append(f"**{primary}**")
+        output.extend(details)
+        output.append("")
         index += 1
+    if output and not output[-1]:
+        output.pop()
     return output, index
 
 

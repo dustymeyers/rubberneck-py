@@ -136,3 +136,7 @@ Live review exposed two presentation issues. Raw SRD Markdown tables are now
 translated into labeled bullet rows for Discord, and relationship targets now
 inherit reverse and sibling links from their curated group so exploration can
 continue beyond a single hop.
+
+The first table translation was still too dense in live use. Table rows now
+render as separate vertical blocks with one quoted `heading: value` line per
+cell, trading some height for much faster scanning.

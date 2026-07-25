@@ -122,14 +122,15 @@ def test_reference_formatter_translates_markdown_tables_to_labeled_bullets():
 
     assert "| Pace |" not in result
     assert "**Travel Pace**" in result
-    assert (
-        "- **Fast:** Distance per: Minute: 400 feet; Hour: 4 miles; "
-        "Day: 30 miles; Effect: -5 passive Perception"
-    ) in result
-    assert (
-        "- **Normal:** Distance per: Minute: 300 feet; Hour: 3 miles; "
-        "Day: 24 miles"
-    ) in result
+    assert """**Fast**
+> **Distance per Minute:** 400 feet
+> **Hour:** 4 miles
+> **Day:** 30 miles
+> **Effect:** -5 passive Perception""" in result
+    assert """**Normal**
+> **Distance per Minute:** 300 feet
+> **Hour:** 3 miles
+> **Day:** 24 miles""" in result
 
 
 def test_search_results_are_grouped_five_per_page():
