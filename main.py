@@ -10,11 +10,10 @@ load_dotenv()
 
 TOKEN = os.getenv("DISCORD_BOT_TOKEN")
 
-cogs_list = [
-    'bestiary',
-    'pagetest',
-    'rules'
-]
+PRODUCTION_COGS = (
+    "bestiary",
+    "rules",
+)
 
 # bot: Bot = Rubberneck(intents=discord.Intents.all())
 
@@ -48,10 +47,12 @@ async def on_application_command_error(ctx, error):
     except discord.HTTPException:
         logger.exception("Could not send the command error response to Discord")
 
-if __name__ == '__main__': # import cogs from cogs folder
-    for extension in cogs_list:
-        bot.load_extension(f'cogs.{extension}')
+def load_production_cogs(target_bot):
+    """Load only cogs intended to register commands in normal deployments."""
+    for extension in PRODUCTION_COGS:
+        target_bot.load_extension(f"cogs.{extension}")
 
 
-
-bot.run(TOKEN)
+if __name__ == "__main__":
+    load_production_cogs(bot)
+    bot.run(TOKEN)

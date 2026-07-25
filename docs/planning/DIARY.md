@@ -145,3 +145,7 @@ Live Discord verification confirmed numbered search-result selection, full
 reference paging, exact Back and Forward restoration, multi-hop related
 navigation, single-message updates, and readable vertical table formatting.
 Feature Block 3 is complete.
+
+Isolated the legacy paginator demonstration cog from production startup as a
+maintenance cleanup. `main.py` now exposes an explicit production-cog loader,
+does not register `/pagetest`, and is safe to import without starting the bot.
