@@ -152,7 +152,65 @@ are stable.
 - [ ] User preferences have documented defaults and do not surprise a server.
 - [ ] Public responses remain concise enough for active play channels.
 
-## Feature Block 5: Game-Master Generators
+## Feature Block 5: Searchable Bestiary and Encounter Data
+
+**Status:** Planned
+
+Build a reusable local monster catalog that is useful during play on its own
+and becomes the authoritative monster-data source for random encounter
+generation. This expands the modern `/monster` and `/monsters` foundation
+without coupling bestiary search to the future generator engine.
+
+### Proposed Command Surface
+
+- `/bestiary lookup <monster>` opens one monster's complete stat reference.
+- `/bestiary search [name] [type] [size] [cr] [environment]` browses monsters
+  using combinable filters.
+- `/bestiary random [filters]` selects one monster from the current filter set
+  for quick discovery; it does not build a balanced encounter.
+
+The existing `/monster` and `/monsters` commands should remain as compatibility
+aliases until the grouped bestiary commands are established.
+
+### Catalog and Data Features
+
+- A typed in-memory monster record containing identity, challenge rating, XP,
+  type, size, alignment, movement, and other generator-relevant fields.
+- A locally searchable index loaded once from the SRD API rather than making an
+  API request for each search or filter change.
+- Project-authored environment and encounter tags stored separately from SRD
+  payloads, with explicit provenance.
+- A stable query/service interface that both Discord commands and future
+  encounter generators can consume.
+- Deterministic ordering and optional seeded random selection for repeatable
+  tests.
+
+### Acceptance Criteria
+
+- [ ] Users can search monsters by partial name and combine supported filters.
+- [ ] Challenge-rating filters support exact values and bounded ranges,
+  including fractional ratings.
+- [ ] Results show enough context to compare candidates: name, CR, type, size,
+  and environment when known.
+- [ ] Search results are paginated and can open the selected monster's full
+  reference without retyping its name.
+- [ ] Search and autocomplete run locally after startup with no API request per
+  interaction.
+- [ ] Monster payloads are normalized into typed records before indexing.
+- [ ] Environment or encounter tags are editable independently of command code
+  and are clearly distinguished from SRD-sourced fields.
+- [ ] Monsters without project-authored environment tags remain discoverable
+  unless an environment filter is explicitly applied.
+- [ ] The catalog exposes a reusable filtered result set for Block 6 encounter
+  generation rather than embedding generator rules in Discord commands.
+- [ ] Random selection can be seeded for deterministic tests and does not claim
+  to produce a balanced encounter.
+- [ ] Empty catalogs, invalid filter combinations, API failures, and no-result
+  searches receive useful user-facing responses.
+- [ ] Tests cover normalization, fractional CR values, combined filters,
+  ordering, pagination, detail navigation, provenance, and seeded selection.
+
+## Feature Block 6: Game-Master Generators
 
 **Status:** Planned — later phase
 
@@ -160,7 +218,8 @@ Build a reusable weighted-table engine before implementing separate generators.
 
 ### Candidate Features
 
-- Random encounters filtered by environment and party parameters.
+- Random encounters using the Block 5 monster catalog, filtered by environment
+  and party parameters.
 - Shop inventories filtered by settlement and shop type.
 - Loot tables filtered by tier, source, and theme.
 
@@ -171,4 +230,6 @@ Build a reusable weighted-table engine before implementing separate generators.
 - [ ] Seeded generation produces deterministic results for tests.
 - [ ] Invalid table data fails validation with actionable messages.
 - [ ] Encounter, shop, and loot commands share the same generation engine.
+- [ ] Encounter generation consumes the searchable bestiary service rather
+  than maintaining a second monster list or fetching monsters per request.
 - [ ] SRD/API-derived content is distinguishable from project-authored tables.
