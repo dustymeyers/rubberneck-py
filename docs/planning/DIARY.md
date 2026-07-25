@@ -149,3 +149,7 @@ Feature Block 3 is complete.
 Isolated the legacy paginator demonstration cog from production startup as a
 maintenance cleanup. `main.py` now exposes an explicit production-cog loader,
 does not register `/pagetest`, and is safe to import without starting the bot.
+
+Separated runtime and development dependencies and added Ruff configuration for
+the modern codebase. Ruff now provides import sorting, linting, and formatting;
+legacy and WIP modules are explicitly excluded until they are modernized.

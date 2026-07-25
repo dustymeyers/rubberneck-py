@@ -9,7 +9,6 @@ import discord
 
 from service.api_client import DnDAPI, ResourceNotFound
 
-
 AUTOCOMPLETE_LIMIT = 25
 AUTOCOMPLETE_LABEL_LIMIT = 100
 REFERENCE_VALUE_SEPARATOR = ":"
@@ -59,7 +58,10 @@ class ReferenceCatalog:
 
     async def load(self) -> None:
         resource_lists = await asyncio.gather(
-            *(self.client.list_resources(item.endpoint) for item in self.reference_types)
+            *(
+                self.client.list_resources(item.endpoint)
+                for item in self.reference_types
+            )
         )
         self.entries = [
             ReferenceEntry(
@@ -89,7 +91,9 @@ class ReferenceCatalog:
         entry = self.find(term, reference_type)
         if entry is None:
             raise ResourceNotFound(f"No SRD reference found for '{term}'.")
-        payload = await self.client.get_resource(entry.reference_type.endpoint, entry.index)
+        payload = await self.client.get_resource(
+            entry.reference_type.endpoint, entry.index
+        )
         return entry, payload
 
     def find(
@@ -122,7 +126,10 @@ class ReferenceCatalog:
         for reference_type, entries in scopes:
             queries = {""}
             for entry in entries:
-                for value in (self._normalise(entry.name), self._normalise(entry.index)):
+                for value in (
+                    self._normalise(entry.name),
+                    self._normalise(entry.index),
+                ):
                     queries.update(
                         value[start:end]
                         for start in range(len(value))
@@ -144,10 +151,14 @@ class ReferenceCatalog:
                 index[self._autocomplete_key(query, reference_type)] = choices
         return index
 
-    def _entries_for(self, reference_type: ReferenceType | None) -> list[ReferenceEntry]:
+    def _entries_for(
+        self, reference_type: ReferenceType | None
+    ) -> list[ReferenceEntry]:
         if reference_type is None:
             return self.entries
-        return [entry for entry in self.entries if entry.reference_type == reference_type]
+        return [
+            entry for entry in self.entries if entry.reference_type == reference_type
+        ]
 
     def _decode_value(self, value: str) -> tuple[ReferenceType | None, str]:
         if REFERENCE_VALUE_SEPARATOR not in value:

@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from service.reference_catalog import ReferenceEntry
 
-
 MAX_RELATED_REFERENCES = 5
 
 REFERENCE_RELATIONSHIPS: dict[str, tuple[str, ...]] = {
@@ -98,17 +97,11 @@ class ReferenceRelations:
             related_values.append(source)
             related_values.extend(targets)
         ordered_values = tuple(
-            dict.fromkeys(
-                value
-                for value in related_values
-                if value != entry.value
-            )
+            dict.fromkeys(value for value in related_values if value != entry.value)
         )
-        return [
-            by_value[value]
-            for value in ordered_values
-            if value in by_value
-        ][:limit]
+        return [by_value[value] for value in ordered_values if value in by_value][
+            :limit
+        ]
 
     def missing_targets(self, entries: list[ReferenceEntry]) -> set[str]:
         available = {entry.value for entry in entries}

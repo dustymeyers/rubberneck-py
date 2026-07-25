@@ -19,13 +19,12 @@ from service.reference_catalog import (
     ReferenceEntry,
     ReferenceType,
 )
+from service.reference_relations import ReferenceRelations
 from service.reference_search import (
     InvalidSearchQuery,
     ReferenceSearchIndex,
     SearchResult,
 )
-from service.reference_relations import ReferenceRelations
-
 
 RULES_GROUP_DESCRIPTION = "Look up rules, conditions, and other SRD references."
 LOOKUP_COMMAND_DESCRIPTION = "Look up a rule or condition in the D&D 5e SRD."
@@ -40,7 +39,9 @@ REFERENCE_NOT_FOUND_MESSAGE = (
 RULE_NOT_FOUND_MESSAGE = (
     "I couldn't find that SRD rule. Start typing the name and choose a suggestion."
 )
-SEARCH_NOT_READY_MESSAGE = "The local SRD search index is not ready yet. Try again shortly."
+SEARCH_NOT_READY_MESSAGE = (
+    "The local SRD search index is not ready yet. Try again shortly."
+)
 NO_SEARCH_RESULTS_MESSAGE = (
     "I couldn't find that text in the indexed SRD references. "
     "Try fewer or more specific words."
@@ -112,8 +113,7 @@ def _is_markdown_table_separator(line: str) -> bool:
         return False
     cells = _table_cells(line)
     return bool(cells) and all(
-        re.fullmatch(r":?-{3,}:?", cell) is not None
-        for cell in cells
+        re.fullmatch(r":?-{3,}:?", cell) is not None for cell in cells
     )
 
 
@@ -129,10 +129,7 @@ def _format_markdown_table(
         cells = _table_cells(lines[index])
         primary = cells[0] if cells else "Entry"
         details = [
-            (
-                f"> **{headers[position].replace(':', '').strip()}:** "
-                f"{cell}"
-            )
+            (f"> **{headers[position].replace(':', '').strip()}:** {cell}")
             for position, cell in enumerate(cells[1:], start=1)
             if position < len(headers) and cell not in ("", "-")
         ]
@@ -271,9 +268,7 @@ def search_result_embeds(
                 value=result.excerpt,
                 inline=False,
             )
-        embed.set_footer(
-            text=f"{SRD_NAME} - {len(results)} result(s) - {SOURCE_NAME}"
-        )
+        embed.set_footer(text=f"{SRD_NAME} - {len(results)} result(s) - {SOURCE_NAME}")
         pages.append(embed)
     return pages
 

@@ -53,10 +53,16 @@ See the requirements.txt for a list of python library dependencies.
     source venv/bin/activate
 ```
 
-3. Install the dependencies.
+3. Install runtime dependencies.
 
 ```shell
-    pip install-r requirements.txt
+    pip install -r requirements.txt
+```
+
+For development and tests, install the development set instead:
+
+```shell
+    pip install -r requirements-dev.txt
 ```
 
 4. (Optional) - Remove password requirement for sudo commands. From the Linux shell, do the following:
@@ -109,6 +115,13 @@ See the requirements.txt for a list of python library dependencies.
 
 ```shell
 pytest
+```
+
+### formatting and linting
+
+```shell
+ruff format .
+ruff check .
 ```
 
 4. To stop the redis-server,

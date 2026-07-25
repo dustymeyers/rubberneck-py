@@ -10,7 +10,11 @@ class FakeClient:
         self.resources = {
             "rule-sections": [
                 ResourceReference("cover", "Cover", "/rule-sections/cover"),
-                ResourceReference("making-an-attack", "Making an Attack", "/rule-sections/making-an-attack"),
+                ResourceReference(
+                    "making-an-attack",
+                    "Making an Attack",
+                    "/rule-sections/making-an-attack",
+                ),
             ],
             "conditions": [
                 ResourceReference("restrained", "Restrained", "/conditions/restrained"),

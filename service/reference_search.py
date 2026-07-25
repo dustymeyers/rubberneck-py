@@ -3,13 +3,12 @@
 from __future__ import annotations
 
 import asyncio
-from dataclasses import dataclass
 import re
 import unicodedata
+from dataclasses import dataclass
 
 from service.api_client import DnDAPI
 from service.reference_catalog import ReferenceEntry
-
 
 MIN_SEARCH_CHARACTERS = 3
 MIN_SEARCH_TOKEN_LENGTH = 2
@@ -69,8 +68,7 @@ class ReferenceSearchIndex:
             )
         )
         self.documents = tuple(
-            self._document(entry, payload)
-            for entry, payload in zip(entries, payloads)
+            self._document(entry, payload) for entry, payload in zip(entries, payloads)
         )
 
     def search(
@@ -117,7 +115,9 @@ class ReferenceSearchIndex:
         return {
             "index": entry.index,
             "name": document.source_name or entry.name,
-            "desc": list(description) if isinstance(description, tuple) else description,
+            "desc": list(description)
+            if isinstance(description, tuple)
+            else description,
             "url": entry.url,
         }
 
@@ -163,9 +163,7 @@ def parse_query(query: str) -> tuple[str, tuple[str, ...]]:
 def normalize_text(value: str) -> str:
     """Normalize text into case-folded Unicode letter and number tokens."""
     normalized = unicodedata.normalize("NFKC", value).casefold()
-    characters = (
-        character if character.isalnum() else " " for character in normalized
-    )
+    characters = (character if character.isalnum() else " " for character in normalized)
     return " ".join("".join(characters).split())
 
 
@@ -218,9 +216,7 @@ def _score(
     if all(description_matches):
         score += ALL_DESCRIPTION_TERMS_WEIGHT
     score += sum(
-        EXACT_DESCRIPTION_TERM_WEIGHT
-        if match == 2
-        else DESCRIPTION_PREFIX_TERM_WEIGHT
+        EXACT_DESCRIPTION_TERM_WEIGHT if match == 2 else DESCRIPTION_PREFIX_TERM_WEIGHT
         for match in description_matches
         if match
     )

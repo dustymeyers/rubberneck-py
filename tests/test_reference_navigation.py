@@ -154,9 +154,7 @@ async def test_related_reference_uses_history_and_back_restores_source(view):
     source = interaction()
     await view.result_buttons[0].callback(source)
 
-    assert [option.value for option in view.related_select.options] == [
-        "rule:rule-1"
-    ]
+    assert [option.value for option in view.related_select.options] == ["rule:rule-1"]
     view.related_select._interaction = source
     view.related_select._selected_values = ["rule:rule-1"]
     await view.related_select.callback(source)

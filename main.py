@@ -1,10 +1,10 @@
-from dotenv import load_dotenv
-from discord.ext import commands
 import os
+
 import discord
+from discord.ext import commands
+from dotenv import load_dotenv
 
 from logger import logger
-
 
 load_dotenv()
 
@@ -19,9 +19,12 @@ PRODUCTION_COGS = (
 
 bot = commands.Bot(intents=discord.Intents.all())
 
+
 @bot.slash_command()
 async def ping(ctx):
     await ctx.respond("Pong!")
+
+
 @bot.event
 async def on_ready():
     logger.info("Logged in as %s", bot.user)
@@ -38,7 +41,9 @@ async def on_application_command_error(ctx, error):
         exc_info=(type(original), original, original.__traceback__),
     )
 
-    message = "Something went wrong while running that command. The error has been logged."
+    message = (
+        "Something went wrong while running that command. The error has been logged."
+    )
     try:
         if ctx.interaction.response.is_done():
             await ctx.send_followup(message, ephemeral=True)
@@ -46,6 +51,7 @@ async def on_application_command_error(ctx, error):
             await ctx.respond(message, ephemeral=True)
     except discord.HTTPException:
         logger.exception("Could not send the command error response to Discord")
+
 
 def load_production_cogs(target_bot):
     """Load only cogs intended to register commands in normal deployments."""

@@ -69,7 +69,9 @@ def test_rules_group_registers_lookup_and_search():
 
 
 def test_rule_markdown_removes_duplicate_title_and_formats_headings():
-    source = "# Making an Attack\n\nIntro text.\n\n#### Modifiers to the Roll\n\nDetails."
+    source = (
+        "# Making an Attack\n\nIntro text.\n\n#### Modifiers to the Roll\n\nDetails."
+    )
 
     result = format_rule_description("Making an Attack", source)
 
@@ -92,7 +94,10 @@ def test_condition_embed_identifies_its_reference_type():
 
     embed = reference_embeds(
         entry,
-        {"name": "Restrained", "desc": ["Speed becomes 0.", "Attacks have disadvantage."]},
+        {
+            "name": "Restrained",
+            "desc": ["Speed becomes 0.", "Attacks have disadvantage."],
+        },
     )[0]
 
     assert embed.title == "Restrained — Condition"
@@ -122,15 +127,21 @@ def test_reference_formatter_translates_markdown_tables_to_labeled_bullets():
 
     assert "| Pace |" not in result
     assert "**Travel Pace**" in result
-    assert """**Fast**
+    assert (
+        """**Fast**
 > **Distance per Minute:** 400 feet
 > **Hour:** 4 miles
 > **Day:** 30 miles
-> **Effect:** -5 passive Perception""" in result
-    assert """**Normal**
+> **Effect:** -5 passive Perception"""
+        in result
+    )
+    assert (
+        """**Normal**
 > **Distance per Minute:** 300 feet
 > **Hour:** 3 miles
-> **Day:** 24 miles""" in result
+> **Day:** 24 miles"""
+        in result
+    )
 
 
 def test_search_results_are_grouped_five_per_page():

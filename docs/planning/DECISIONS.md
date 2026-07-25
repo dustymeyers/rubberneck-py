@@ -196,3 +196,16 @@ order, subject to the five-entry display limit.
 layouts are especially poor on mobile. Labeled rows preserve the same
 information vertically. Bidirectional relationship groups let users continue
 exploring related concepts instead of reaching a dead end after one selection.
+
+## 2026-07-24 — Ruff and Separate Development Dependencies
+
+**Decision:** `requirements.txt` contains runtime dependencies only.
+`requirements-dev.txt` includes the runtime file and pins pytest, coverage, and
+Ruff tooling. Ruff owns import sorting and formatting for modern code using
+Python 3.12 and an 88-character line length. Explicitly preserved legacy and WIP
+modules remain excluded until their modernization work begins.
+
+**Reason:** Deployments should not install test and lint tooling, while
+contributors need one reproducible development install. One formatter and
+linter removes style ambiguity without mixing mechanical legacy cleanup into
+feature work.

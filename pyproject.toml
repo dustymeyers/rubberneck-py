@@ -1,0 +1,21 @@
+[tool.ruff]
+target-version = "py312"
+line-length = 88
+extend-exclude = [
+    "bot.py",
+    "cogs/bestiary.py",
+    "cogs/__init__.py",
+    "cogs/pagetest.py",
+    "logger.py",
+    "models/monster.py",
+    "service/dnd_api_client.py",
+    "service/redis_client.py",
+]
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"

@@ -42,10 +42,21 @@ class TestDnDAPI:
     @pytest.mark.asyncio
     async def test_lists_resources_and_caches_response(self):
         calls = []
-        response = FakeResponse(200, {"results": [
-            {"index": "cover", "name": "Cover", "url": "/api/2014/rule-sections/cover"}
-        ]})
-        client = DnDAPI(session_factory=lambda **kwargs: FakeSession(response, calls, **kwargs))
+        response = FakeResponse(
+            200,
+            {
+                "results": [
+                    {
+                        "index": "cover",
+                        "name": "Cover",
+                        "url": "/api/2014/rule-sections/cover",
+                    }
+                ]
+            },
+        )
+        client = DnDAPI(
+            session_factory=lambda **kwargs: FakeSession(response, calls, **kwargs)
+        )
 
         first = await client.list_resources("rule-sections")
         second = await client.list_resources("rule-sections")
@@ -57,8 +68,13 @@ class TestDnDAPI:
     @pytest.mark.asyncio
     async def test_normalises_friendly_rule_name(self):
         calls = []
-        response = FakeResponse(200, {"index": "making-an-attack", "name": "Making an Attack", "desc": "Text"})
-        client = DnDAPI(session_factory=lambda **kwargs: FakeSession(response, calls, **kwargs))
+        response = FakeResponse(
+            200,
+            {"index": "making-an-attack", "name": "Making an Attack", "desc": "Text"},
+        )
+        client = DnDAPI(
+            session_factory=lambda **kwargs: FakeSession(response, calls, **kwargs)
+        )
 
         await client.get_resource("rule-sections", " Making an Attack ")
 
@@ -66,7 +82,11 @@ class TestDnDAPI:
 
     @pytest.mark.asyncio
     async def test_raises_specific_error_for_missing_rule(self):
-        client = DnDAPI(session_factory=lambda **kwargs: FakeSession(FakeResponse(404), [], **kwargs))
+        client = DnDAPI(
+            session_factory=lambda **kwargs: FakeSession(
+                FakeResponse(404), [], **kwargs
+            )
+        )
 
         with pytest.raises(ResourceNotFound):
             await client.get_resource("rule-sections", "not-real")

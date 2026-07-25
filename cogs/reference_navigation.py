@@ -12,7 +12,6 @@ import discord
 from service.reference_catalog import ReferenceEntry
 from service.reference_search import SearchResult
 
-
 NAVIGATION_OWNER_MESSAGE = "Only the person who ran this command can use its controls."
 MISSING_INDEXED_REFERENCE_MESSAGE = (
     "That indexed reference is no longer available. Run the search again."
@@ -86,10 +85,7 @@ class ReferenceNavigatorView(discord.ui.View):
         self.forward_history: list[NavigationSnapshot] = []
         self._state_lock = asyncio.Lock()
         self.result_buttons = (
-            [
-                SearchResultButton(self, slot)
-                for slot in range(self.results_per_page)
-            ]
+            [SearchResultButton(self, slot) for slot in range(self.results_per_page)]
             if self.results
             else []
         )
@@ -277,10 +273,7 @@ class ReferenceNavigatorView(discord.ui.View):
             result_index = start + slot
             has_result = result_index < len(self.results)
             button.label = str(result_index + 1) if has_result else "—"
-            button.disabled = (
-                self.mode != "search"
-                or not has_result
-            )
+            button.disabled = self.mode != "search" or not has_result
 
     async def _open_reference(
         self,
