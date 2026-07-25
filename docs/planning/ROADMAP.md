@@ -180,6 +180,8 @@ search to the future generator engine.
 
 ### Proposed Command Surface
 
+- `/search <text> [category]` searches every registered reference catalog and
+  optionally narrows results to one resource family.
 - `/monster <name>` opens one monster's complete stat reference.
 - `/monsters list [filters]` browses the complete catalog.
 - `/monsters search [name] [type] [size] [cr] [environment]` finds monsters
@@ -189,6 +191,8 @@ search to the future generator engine.
 
 The existing `/monster` lookup remains the focused singular command.
 `/monsters` evolves into the grouped surface for plural catalog operations.
+Existing focused searches such as `/rules search` remain available when a user
+already knows which resource family they need.
 
 ### Catalog and Data Features
 
@@ -211,12 +215,23 @@ The existing `/monster` lookup remains the focused singular command.
   payloads, with explicit provenance.
 - A stable query/service interface that both Discord commands and future
   encounter generators can consume.
+- A federated search registry that combines independently implemented catalogs
+  without hard-coding every resource type into the `/search` command.
 - Deterministic ordering and optional seeded random selection for repeatable
   tests.
 
 ### Acceptance Criteria
 
 - [ ] Users can search monsters by partial name and combine supported filters.
+- [ ] `/search` initially covers rules, conditions, and monsters, then includes
+  later resource catalogs through registration rather than command rewrites.
+- [ ] General search results clearly label resource type and source, use
+  deterministic cross-resource ranking, and prevent one large category from
+  crowding out every other relevant category.
+- [ ] A general-search result can open the resource's full formatted response
+  through its registered presenter without the search service importing cogs.
+- [ ] Empty, short, invalid-category, and no-result general searches provide
+  actionable guidance.
 - [ ] Challenge-rating filters support exact values and bounded ranges,
   including fractional ratings.
 - [ ] Results show enough context to compare candidates: name, CR, type, size,
@@ -275,6 +290,8 @@ search, comparison, and filtering.
 
 - [ ] Every resource family uses the Block 5 generic catalog and API client
   rather than introducing a parallel cache or search implementation.
+- [ ] Equipment and magic-item catalogs register with `/search` without adding
+  item-specific branches to the general-search command.
 - [ ] Each endpoint has a typed record and adapter with explicit handling for
   missing or version-dependent fields.
 - [ ] Lookup, autocomplete, filter semantics, result navigation, provenance,
@@ -372,6 +389,8 @@ species/races, and feats after the generator-enabling catalogs are stable.
 ### Acceptance Criteria
 
 - [ ] Every resource family uses the Block 5 generic catalog and API client.
+- [ ] Each new catalog registers with `/search` and contributes its own typed
+  result metadata and presenter.
 - [ ] Spell searches support combinable class, level, school, ritual, and
   concentration filters.
 - [ ] Classes, subclasses, species/subraces, and related features preserve
