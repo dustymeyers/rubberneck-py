@@ -144,13 +144,15 @@ async def test_lookup_and_legacy_rule_delegate_with_correct_scope(cog, ctx):
     await Rules.rule.callback(cog, ctx, "cover")
 
     assert cog._respond_with_reference.await_args_list[0].args == (ctx, "cover")
+    assert cog._respond_with_reference.await_args_list[0].kwargs == {"private": False}
     assert cog._respond_with_reference.await_args_list[1].args == (
         ctx,
         "cover",
         RULE,
     )
     assert cog._respond_with_reference.await_args_list[1].kwargs == {
-        "legacy_alias": True
+        "legacy_alias": True,
+        "private": False,
     }
 
 
@@ -160,7 +162,7 @@ async def test_search_reports_index_not_ready(cog, ctx):
 
     await Rules.search.callback(cog, ctx, "hidden")
 
-    ctx.defer.assert_awaited_once_with()
+    ctx.defer.assert_awaited_once_with(ephemeral=False)
     cog.load_references.assert_awaited_once_with()
     ctx.respond.assert_awaited_once_with(SEARCH_NOT_READY_MESSAGE, ephemeral=True)
 
@@ -190,6 +192,18 @@ async def test_search_responds_with_one_embed(cog, ctx):
     response = ctx.respond.await_args.kwargs
     assert response["embed"].fields[0].value == "Matching text."
     assert response["view"].owner_id == ctx.author.id
+    assert response["ephemeral"] is False
+
+
+@pytest.mark.asyncio
+async def test_search_can_return_a_private_response(cog, ctx):
+    cog.search_index.documents = (object(),)
+    cog.search_index.search.return_value = [search_result()]
+
+    await Rules.search.callback(cog, ctx, "matching", private=True)
+
+    ctx.defer.assert_awaited_once_with(ephemeral=True)
+    assert ctx.respond.await_args.kwargs["ephemeral"] is True
 
 
 @pytest.mark.asyncio

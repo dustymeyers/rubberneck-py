@@ -18,13 +18,13 @@ belong in `ROADMAP.md`.
 
 ### 2. Add Shared Response Visibility
 
-- [ ] Define one optional `private`/ephemeral parameter with a consistent,
+- [x] Define one optional `private`/ephemeral parameter with a consistent,
   unsurprising public default.
-- [ ] Centralize defer/respond visibility behavior so lookup, search, list, and
+- [x] Centralize defer/respond visibility behavior so lookup, search, list, and
   compatibility commands do not implement it independently.
-- [ ] Ensure interactive navigation remains usable within Discord's ephemeral
+- [x] Ensure interactive navigation remains usable within Discord's ephemeral
   response and component-timeout limits.
-- [ ] Test public defaults, private responses, deferred followups, and error
+- [x] Test public defaults, private responses, deferred followups, and error
   responses.
 
 ### 3. Add Stable Source Links

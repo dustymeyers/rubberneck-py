@@ -11,6 +11,7 @@ from discord.ext import commands
 from dotenv import load_dotenv
 
 from rubberneck.cogs.reference_navigation import ReferenceNavigatorView
+from rubberneck.cogs.responses import PRIVATE_OPTION_DESCRIPTION, ResponseSession
 from rubberneck.logging import logger
 from rubberneck.services.api_client import DnDAPI, DnDAPIError, ResourceNotFound
 from rubberneck.services.reference_catalog import (
@@ -359,8 +360,12 @@ class Rules(commands.Cog):
                 autocomplete=reference_autocomplete,
             ),
         ],
+        private: Annotated[
+            bool,
+            discord.Option(description=PRIVATE_OPTION_DESCRIPTION),
+        ] = False,
     ) -> None:
-        await self._respond_with_reference(ctx, term)
+        await self._respond_with_reference(ctx, term, private=private)
 
     @rules.command(name="search", description=SEARCH_COMMAND_DESCRIPTION)
     async def search(
@@ -370,20 +375,25 @@ class Rules(commands.Cog):
             str,
             discord.Option(description=SEARCH_OPTION_DESCRIPTION),
         ],
+        private: Annotated[
+            bool,
+            discord.Option(description=PRIVATE_OPTION_DESCRIPTION),
+        ] = False,
     ) -> None:
-        await ctx.defer()
+        response = ResponseSession(ctx, private)
+        await response.defer()
         if not self.search_index.documents:
             await self.load_references()
         if not self.search_index.documents:
-            await ctx.respond(SEARCH_NOT_READY_MESSAGE, ephemeral=True)
+            await response.send(SEARCH_NOT_READY_MESSAGE, error=True)
             return
         try:
             results = self.search_index.search(text)
         except InvalidSearchQuery as exc:
-            await ctx.respond(str(exc), ephemeral=True)
+            await response.send(str(exc), error=True)
             return
         if not results:
-            await ctx.respond(NO_SEARCH_RESULTS_MESSAGE, ephemeral=True)
+            await response.send(NO_SEARCH_RESULTS_MESSAGE, error=True)
             return
 
         embeds = search_result_embeds(text, results)
@@ -401,7 +411,7 @@ class Rules(commands.Cog):
             results_per_page=SEARCH_RESULTS_PER_PAGE,
             timeout=PAGINATOR_TIMEOUT_SECONDS,
         )
-        await ctx.respond(embed=embeds[0], view=view)
+        await response.send(embed=embeds[0], view=view)
 
     @discord.slash_command(name="rule", description=RULE_COMMAND_DESCRIPTION)
     async def rule(
@@ -414,8 +424,18 @@ class Rules(commands.Cog):
                 autocomplete=rule_autocomplete,
             ),
         ],
+        private: Annotated[
+            bool,
+            discord.Option(description=PRIVATE_OPTION_DESCRIPTION),
+        ] = False,
     ) -> None:
-        await self._respond_with_reference(ctx, name, RULE, legacy_alias=True)
+        await self._respond_with_reference(
+            ctx,
+            name,
+            RULE,
+            legacy_alias=True,
+            private=private,
+        )
 
     async def _respond_with_reference(
         self,
@@ -423,8 +443,10 @@ class Rules(commands.Cog):
         term: str,
         reference_type: ReferenceType | None = None,
         legacy_alias: bool = False,
+        private: bool = False,
     ) -> None:
-        await ctx.defer()
+        response = ResponseSession(ctx, private)
+        await response.defer()
         try:
             entry, payload = await self.catalog.resolve(term, reference_type)
             embeds = reference_embeds(entry, payload, legacy_alias=legacy_alias)
@@ -444,15 +466,15 @@ class Rules(commands.Cog):
                 initial_reference=entry,
                 initial_reference_pages=embeds,
             )
-            await ctx.respond(embed=embeds[0], view=view)
+            await response.send(embed=embeds[0], view=view)
         except ResourceNotFound:
-            await ctx.respond(
+            await response.send(
                 self._not_found_message(reference_type),
-                ephemeral=True,
+                error=True,
             )
         except DnDAPIError as exc:
             logger.error("SRD reference lookup failed: %s", exc, exc_info=True)
-            await ctx.respond(str(exc), ephemeral=True)
+            await response.send(str(exc), error=True)
 
     @staticmethod
     def _not_found_message(reference_type: ReferenceType | None) -> str:

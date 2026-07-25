@@ -11,6 +11,7 @@ from discord.ext import commands
 from discord.ext.pages import Paginator
 from dotenv import load_dotenv
 
+from rubberneck.cogs.responses import PRIVATE_OPTION_DESCRIPTION, ResponseSession
 from rubberneck.logging import logger
 from rubberneck.services.api_client import DnDAPI, DnDAPIError, ResourceNotFound
 from rubberneck.services.reference_catalog import (
@@ -190,17 +191,25 @@ class Bestiary(commands.Cog):
         description="Browse monsters available in the D&D 5e SRD.",
         guild_ids=COMMAND_GUILD_IDS,
     )
-    async def monsters(self, ctx: discord.ApplicationContext) -> None:
-        await ctx.defer()
+    async def monsters(
+        self,
+        ctx: discord.ApplicationContext,
+        private: Annotated[
+            bool,
+            discord.Option(description=PRIVATE_OPTION_DESCRIPTION),
+        ] = False,
+    ) -> None:
+        response = ResponseSession(ctx, private)
+        await response.defer()
         if not self.catalog.entries:
             await self.load_monsters()
         if not self.catalog.entries:
-            await ctx.respond(MONSTERS_NOT_READY_MESSAGE, ephemeral=True)
+            await response.send(MONSTERS_NOT_READY_MESSAGE, error=True)
             return
 
         pages = monster_list_embeds(self.catalog.entries)
         paginator = Paginator(pages=pages)
-        await paginator.respond(ctx.interaction, ephemeral=False)
+        await paginator.respond(ctx.interaction, ephemeral=private)
 
     @discord.slash_command(
         name="monster",
@@ -217,18 +226,23 @@ class Bestiary(commands.Cog):
                 autocomplete=monster_autocomplete,
             ),
         ],
+        private: Annotated[
+            bool,
+            discord.Option(description=PRIVATE_OPTION_DESCRIPTION),
+        ] = False,
     ) -> None:
-        await ctx.defer()
+        response = ResponseSession(ctx, private)
+        await response.defer()
         try:
             _, payload = await self.catalog.resolve(name, MONSTER)
         except ResourceNotFound:
-            await ctx.respond(MONSTER_NOT_FOUND_MESSAGE, ephemeral=True)
+            await response.send(MONSTER_NOT_FOUND_MESSAGE, error=True)
             return
         except DnDAPIError as exc:
             logger.error("SRD monster lookup failed: %s", exc, exc_info=True)
-            await ctx.respond(str(exc), ephemeral=True)
+            await response.send(str(exc), error=True)
             return
-        await ctx.respond(embed=monster_embed(payload))
+        await response.send(embed=monster_embed(payload))
 
 
 def setup(bot: commands.Bot) -> None:

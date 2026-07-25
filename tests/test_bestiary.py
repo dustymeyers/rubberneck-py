@@ -123,7 +123,7 @@ async def test_monster_autocomplete_uses_precomputed_catalog(cog):
 async def test_monsters_reports_catalog_startup_failure(cog, ctx):
     await cog.monsters.callback(cog, ctx)
 
-    ctx.defer.assert_awaited_once_with()
+    ctx.defer.assert_awaited_once_with(ephemeral=False)
     ctx.respond.assert_awaited_once_with(
         MONSTERS_NOT_READY_MESSAGE,
         ephemeral=True,
@@ -141,6 +141,20 @@ async def test_monster_returns_formatted_embed(cog, ctx):
 
     response = ctx.respond.await_args.kwargs
     assert response["embed"].title == "Owlbear"
+    assert response["ephemeral"] is False
+
+
+@pytest.mark.asyncio
+async def test_monster_can_return_a_private_response(cog, ctx):
+    cog.catalog.resolve.return_value = (
+        monster_entry(),
+        {"name": "Owlbear", "armor_class": [], "speed": {}},
+    )
+
+    await cog.monster.callback(cog, ctx, "monster:owlbear", private=True)
+
+    ctx.defer.assert_awaited_once_with(ephemeral=True)
+    assert ctx.respond.await_args.kwargs["ephemeral"] is True
 
 
 @pytest.mark.asyncio
