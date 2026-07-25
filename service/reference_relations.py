@@ -91,9 +91,22 @@ class ReferenceRelations:
         limit: int = MAX_RELATED_REFERENCES,
     ) -> list[ReferenceEntry]:
         by_value = {candidate.value: candidate for candidate in entries}
+        related_values = list(self.relationships.get(entry.value, ()))
+        for source, targets in self.relationships.items():
+            if entry.value not in targets:
+                continue
+            related_values.append(source)
+            related_values.extend(targets)
+        ordered_values = tuple(
+            dict.fromkeys(
+                value
+                for value in related_values
+                if value != entry.value
+            )
+        )
         return [
             by_value[value]
-            for value in self.relationships.get(entry.value, ())
+            for value in ordered_values
             if value in by_value
         ][:limit]
 

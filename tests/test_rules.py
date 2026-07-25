@@ -109,6 +109,29 @@ def test_reference_formatter_handles_list_markdown():
     assert result == "**Effects**\n\nSpeed becomes 0."
 
 
+def test_reference_formatter_translates_markdown_tables_to_labeled_bullets():
+    source = """##### Travel Pace
+
+| Pace | Distance per: Minute | Hour | Day | Effect |
+|------|----------------------|------|-----|--------|
+| Fast | 400 feet | 4 miles | 30 miles | -5 passive Perception |
+| Normal | 300 feet | 3 miles | 24 miles | - |
+"""
+
+    result = format_reference_description("Movement", source)
+
+    assert "| Pace |" not in result
+    assert "**Travel Pace**" in result
+    assert (
+        "- **Fast:** Distance per: Minute: 400 feet; Hour: 4 miles; "
+        "Day: 30 miles; Effect: -5 passive Perception"
+    ) in result
+    assert (
+        "- **Normal:** Distance per: Minute: 300 feet; Hour: 3 miles; "
+        "Day: 24 miles"
+    ) in result
+
+
 def test_search_results_are_grouped_five_per_page():
     results = [
         SearchResult(

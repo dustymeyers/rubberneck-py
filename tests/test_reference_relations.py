@@ -49,3 +49,21 @@ def test_entry_without_relationships_has_no_related_results():
     source = entry("source")
 
     assert ReferenceRelations({}).related(source, [source]) == []
+
+
+def test_relationship_target_can_continue_through_source_and_siblings():
+    source = entry("source")
+    first = entry("first")
+    second = entry("second", CONDITION)
+    relations = ReferenceRelations(
+        {
+            source.value: (
+                first.value,
+                second.value,
+            )
+        }
+    )
+
+    result = relations.related(first, [source, first, second])
+
+    assert result == [source, second]

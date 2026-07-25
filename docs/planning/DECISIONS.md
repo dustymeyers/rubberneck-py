@@ -181,3 +181,18 @@ semantics.
 reference after inspecting the search page should not require selecting it
 again. Snapshot-based forward history restores the exact reference page and
 extends naturally to related-reference navigation.
+
+## 2026-07-24 — Discord-Friendly Tables and Traversable Relations
+
+**Decision:** Markdown tables from the SRD are rendered as labeled bullet rows
+rather than raw pipe syntax. The first column becomes the bold row label and
+remaining non-empty cells become semicolon-separated `heading: value` details.
+
+Curated relationship groups are traversable in both directions. A target can
+see its explicit source and the source's other targets, in stable declared
+order, subject to the five-entry display limit.
+
+**Reason:** Discord embeds do not render Markdown tables, and horizontal table
+layouts are especially poor on mobile. Labeled rows preserve the same
+information vertically. Bidirectional relationship groups let users continue
+exploring related concepts instead of reaching a dead end after one selection.

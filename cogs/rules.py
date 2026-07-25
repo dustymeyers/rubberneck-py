@@ -81,10 +81,62 @@ def format_reference_description(name: str, value: str | list[str] | None) -> st
             lines.pop(0)
 
     formatted: list[str] = []
-    for line in lines:
+    index = 0
+    while index < len(lines):
+        line = lines[index]
+        if (
+            _is_markdown_table_row(line)
+            and index + 1 < len(lines)
+            and _is_markdown_table_separator(lines[index + 1])
+        ):
+            table_lines, index = _format_markdown_table(lines, index)
+            formatted.extend(table_lines)
+            continue
         heading = re.match(r"^\s*#{1,6}\s+(.+?)\s*$", line)
         formatted.append(f"**{heading.group(1)}**" if heading else line)
+        index += 1
     return "\n".join(formatted).strip()
+
+
+def _is_markdown_table_row(line: str) -> bool:
+    stripped = line.strip()
+    return stripped.startswith("|") and stripped.endswith("|")
+
+
+def _table_cells(line: str) -> list[str]:
+    return [cell.strip() for cell in line.strip().strip("|").split("|")]
+
+
+def _is_markdown_table_separator(line: str) -> bool:
+    if not _is_markdown_table_row(line):
+        return False
+    cells = _table_cells(line)
+    return bool(cells) and all(
+        re.fullmatch(r":?-{3,}:?", cell) is not None
+        for cell in cells
+    )
+
+
+def _format_markdown_table(
+    lines: list[str],
+    start: int,
+) -> tuple[list[str], int]:
+    """Translate a Markdown table into mobile-friendly labeled bullet rows."""
+    headers = _table_cells(lines[start])
+    output: list[str] = []
+    index = start + 2
+    while index < len(lines) and _is_markdown_table_row(lines[index]):
+        cells = _table_cells(lines[index])
+        primary = cells[0] if cells else "Entry"
+        details = [
+            f"{headers[position].rstrip(':')}: {cell}"
+            for position, cell in enumerate(cells[1:], start=1)
+            if position < len(headers) and cell not in ("", "-")
+        ]
+        suffix = f" {'; '.join(details)}" if details else ""
+        output.append(f"- **{primary}:**{suffix}")
+        index += 1
+    return output, index
 
 
 def format_rule_description(name: str, text: str) -> str:

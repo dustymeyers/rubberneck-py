@@ -131,3 +131,8 @@ search or direct lookup now expose a labeled related-entry selector. Related
 navigation uses the same history and indexed payloads, filters missing targets,
 serializes concurrent clicks, rejects stale controls, and disables components
 at timeout.
+
+Live review exposed two presentation issues. Raw SRD Markdown tables are now
+translated into labeled bullet rows for Discord, and relationship targets now
+inherit reverse and sibling links from their curated group so exploration can
+continue beyond a single hop.
