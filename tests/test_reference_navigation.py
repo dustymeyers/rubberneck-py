@@ -108,6 +108,39 @@ async def test_reference_page_controls_reuse_same_message(view):
 
 
 @pytest.mark.asyncio
+async def test_back_and_forward_restore_exact_reference_page(view):
+    source = interaction()
+
+    await view.result_buttons[0].callback(source)
+    await view.next_button.callback(source)
+    await view.back_button.callback(source)
+
+    assert view.mode == "search"
+    assert view.forward_button.disabled is False
+
+    await view.forward_button.callback(source)
+
+    assert view.mode == "reference"
+    assert view.reference_entry.index == "rule-0"
+    assert view.reference_page == 1
+    assert view.current_embed.title == "Rule 0 page 2"
+
+
+@pytest.mark.asyncio
+async def test_new_navigation_after_back_clears_forward_history(view):
+    source = interaction()
+
+    await view.result_buttons[0].callback(source)
+    await view.back_button.callback(source)
+    await view.next_button.callback(source)
+
+    assert view.mode == "search"
+    assert view.search_page == 1
+    assert not view.forward_history
+    assert view.forward_button.disabled is True
+
+
+@pytest.mark.asyncio
 async def test_navigation_rejects_other_users_privately(view):
     source = interaction(user_id=99)
 
@@ -138,6 +171,6 @@ async def test_missing_indexed_reference_does_not_change_state(view):
 def test_component_layout_stays_within_discord_limits(view):
     components = view.to_components()
 
-    assert len(view.children) == 9
+    assert len(view.children) == 10
     assert len(components) == 2
     assert len(view.result_buttons) == 5

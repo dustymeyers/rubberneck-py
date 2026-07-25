@@ -21,6 +21,7 @@ belong in `ROADMAP.md`.
 - [x] Let a user open a full reference directly from `/rules search` results.
 - [x] Reuse lookup formatting and pagination for the selected reference.
 - [x] Add back navigation to the originating search result page.
+- [x] Add forward navigation that restores the reference and page left by Back.
 - [x] Keep search and selected-reference navigation in one response.
 - [x] Build one navigation view that renders search and reference states without
   losing page history.

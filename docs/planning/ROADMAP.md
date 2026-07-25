@@ -102,6 +102,8 @@ dead-end summary.
 - [ ] Each search result provides a direct way to open its full reference text.
 - [ ] Opening a search result reuses lookup formatting and long-text pagination.
 - [ ] Back navigation restores the originating search query and result page.
+- [ ] Forward navigation restores the reference and page most recently left by
+  back navigation.
 - [ ] Search-to-reference navigation edits one response instead of creating
   additional channel messages.
 - [ ] Rule responses can display relevant related rules or conditions.

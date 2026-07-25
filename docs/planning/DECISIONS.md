@@ -168,3 +168,16 @@ buttons are the closest native interaction to clicking a result card, require
 one click instead of opening a menu, and fit exactly within one component row.
 The selector capacity remains available for future related-reference choices,
 where labels are more important than positional numbers.
+
+## 2026-07-24 — Bidirectional Navigation History
+
+**Decision:** The navigator provides both Back and Forward controls. Back pushes
+the current snapshot onto a forward-history stack before restoring the prior
+snapshot. Forward performs the inverse. Opening a different result or changing
+pages after going back clears forward history, matching browser navigation
+semantics.
+
+**Reason:** Once the response maintains navigation history, returning to a
+reference after inspecting the search page should not require selecting it
+again. Snapshot-based forward history restores the exact reference page and
+extends naturally to related-reference navigation.

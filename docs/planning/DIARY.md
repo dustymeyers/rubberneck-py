@@ -120,3 +120,7 @@ Replaced the result selector with five page-aware numbered buttons after live
 interaction review. Their labels correspond to the numbered result cards, so a
 full reference opens in one click; empty page slots and all buttons in reference
 mode are disabled.
+
+Added browser-style Forward navigation. Back and Forward now preserve complete
+snapshots, including the selected reference and page, while taking a new path
+after Back clears forward history.

@@ -76,6 +76,7 @@ class ReferenceNavigatorView(discord.ui.View):
         self.reference_pages: tuple[discord.Embed, ...] = ()
         self.reference_page = 0
         self.history: list[NavigationSnapshot] = []
+        self.forward_history: list[NavigationSnapshot] = []
         self._state_lock = asyncio.Lock()
         self.result_buttons = [
             SearchResultButton(self, slot)
@@ -109,6 +110,7 @@ class ReferenceNavigatorView(discord.ui.View):
                 return
 
             self.history.append(self._snapshot())
+            self.forward_history.clear()
             self.mode = "reference"
             self.reference_entry = entry
             self.reference_pages = tuple(self.reference_pages_for(entry, payload))
@@ -122,6 +124,7 @@ class ReferenceNavigatorView(discord.ui.View):
         interaction: discord.Interaction,
     ) -> None:
         async with self._state_lock:
+            self.forward_history.clear()
             if self.mode == "search":
                 self.search_page = max(0, self.search_page - 1)
             else:
@@ -148,6 +151,7 @@ class ReferenceNavigatorView(discord.ui.View):
         interaction: discord.Interaction,
     ) -> None:
         async with self._state_lock:
+            self.forward_history.clear()
             if self.mode == "search":
                 self.search_page = min(
                     len(self.search_pages) - 1,
@@ -173,7 +177,25 @@ class ReferenceNavigatorView(discord.ui.View):
     ) -> None:
         async with self._state_lock:
             if self.history:
+                self.forward_history.append(self._snapshot())
                 self._restore(self.history.pop())
+            await self._edit(interaction)
+
+    @discord.ui.button(
+        label="Forward",
+        style=discord.ButtonStyle.primary,
+        disabled=True,
+        row=1,
+    )
+    async def forward_button(
+        self,
+        button: discord.ui.Button,
+        interaction: discord.Interaction,
+    ) -> None:
+        async with self._state_lock:
+            if self.forward_history:
+                self.history.append(self._snapshot())
+                self._restore(self.forward_history.pop())
             await self._edit(interaction)
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
@@ -204,6 +226,7 @@ class ReferenceNavigatorView(discord.ui.View):
         self.previous_button.disabled = page == 0
         self.next_button.disabled = page >= page_count - 1
         self.back_button.disabled = not self.history
+        self.forward_button.disabled = not self.forward_history
         start = self.search_page * self.results_per_page
         for slot, button in enumerate(self.result_buttons):
             result_index = start + slot
