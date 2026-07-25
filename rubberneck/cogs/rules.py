@@ -20,6 +20,7 @@ from rubberneck.services.api_client import (
     canonical_srd_url,
 )
 from rubberneck.services.reference_catalog import (
+    CONDITION,
     RULE,
     ReferenceCatalog,
     ReferenceEntry,
@@ -35,9 +36,11 @@ from rubberneck.services.reference_search import (
 RULES_GROUP_DESCRIPTION = "Look up rules, conditions, and other SRD references."
 LOOKUP_COMMAND_DESCRIPTION = "Look up a rule or condition in the D&D 5e SRD."
 SEARCH_COMMAND_DESCRIPTION = "Search inside SRD rule and condition descriptions."
+LIST_COMMAND_DESCRIPTION = "Browse available SRD rules and conditions."
 RULE_COMMAND_DESCRIPTION = "Look up a rule section in the D&D 5e SRD."
 REFERENCE_OPTION_DESCRIPTION = "Reference name, such as 'Cover' or 'Restrained'"
 SEARCH_OPTION_DESCRIPTION = "Words or a phrase, such as 'attack while hidden'"
+LIST_TOPIC_OPTION_DESCRIPTION = "Reference category to browse"
 RULE_OPTION_DESCRIPTION = "Rule name, such as 'Cover' or 'Making an Attack'"
 REFERENCE_NOT_FOUND_MESSAGE = (
     "I couldn't find that SRD reference. Start typing the name and choose a suggestion."
@@ -52,6 +55,13 @@ NO_SEARCH_RESULTS_MESSAGE = (
     "I couldn't find that text in the indexed SRD references. "
     "Try fewer or more specific words."
 )
+REFERENCE_LIST_NOT_READY_MESSAGE = (
+    "The SRD reference catalog is not ready yet. Try again shortly."
+)
+INVALID_LIST_TOPIC_MESSAGE = (
+    "Choose one of the supported topics: all, rules, or conditions."
+)
+NO_LIST_RESULTS_MESSAGE = "No SRD references are available for that topic."
 SRD_NAME = "D&D 5e SRD (2014)"
 SOURCE_NAME = "dnd5eapi.co"
 LEGACY_RULE_HINT = "Tip: /rules lookup also searches conditions."
@@ -63,6 +73,12 @@ PAGINATOR_TIMEOUT_SECONDS = 300
 SEARCH_RESULTS_PER_PAGE = 5
 REFERENCE_LOAD_ATTEMPTS = 3
 REFERENCE_RETRY_DELAY_SECONDS = 2
+REFERENCE_LIST_TOPICS: dict[str, ReferenceType | None] = {
+    "all": None,
+    "rules": RULE,
+    "conditions": CONDITION,
+}
+REFERENCE_LIST_TOPIC_CHOICES = tuple(REFERENCE_LIST_TOPICS)
 
 
 load_dotenv()
@@ -280,6 +296,53 @@ def search_result_embeds(
     return pages
 
 
+def reference_list_results(
+    entries: list[ReferenceEntry],
+    topic: str,
+) -> list[SearchResult]:
+    """Convert a catalog topic into deterministic navigator results."""
+    if topic not in REFERENCE_LIST_TOPICS:
+        raise ValueError(INVALID_LIST_TOPIC_MESSAGE)
+    reference_type = REFERENCE_LIST_TOPICS[topic]
+    selected = (
+        entries
+        if reference_type is None
+        else [entry for entry in entries if entry.reference_type == reference_type]
+    )
+    ordered = sorted(
+        selected,
+        key=lambda entry: (
+            entry.name.casefold(),
+            entry.reference_type.key,
+            entry.index,
+        ),
+    )
+    return [
+        SearchResult(
+            entry=entry,
+            score=0,
+            excerpt=f"SRD index: `{entry.index}`",
+        )
+        for entry in ordered
+    ]
+
+
+def reference_list_embeds(
+    topic: str,
+    results: list[SearchResult],
+) -> list[discord.Embed]:
+    """Build numbered browse pages compatible with reference navigation."""
+    label = topic.title()
+    pages = search_result_embeds(label, results)
+    for page_number, embed in enumerate(pages, start=1):
+        suffix = "" if len(pages) == 1 else f" ({page_number}/{len(pages)})"
+        embed.title = f"SRD references — {label}{suffix}"
+        embed.set_footer(
+            text=f"{SRD_NAME} - {len(results)} reference(s) - {SOURCE_NAME}"
+        )
+    return pages
+
+
 class Rules(commands.Cog):
     rules = SlashCommandGroup(
         "rules",
@@ -406,6 +469,55 @@ class Rules(commands.Cog):
         view = ReferenceNavigatorView(
             owner_id=ctx.author.id,
             query=text,
+            results=results,
+            search_pages=embeds,
+            payload_for=self.search_index.payload_for,
+            reference_pages=reference_embeds,
+            related_for=lambda entry: self.relations.related(
+                entry,
+                self.catalog.entries,
+            ),
+            results_per_page=SEARCH_RESULTS_PER_PAGE,
+            timeout=PAGINATOR_TIMEOUT_SECONDS,
+        )
+        await response.send(embed=embeds[0], view=view)
+
+    @rules.command(name="list", description=LIST_COMMAND_DESCRIPTION)
+    async def list_references(
+        self,
+        ctx: discord.ApplicationContext,
+        topic: Annotated[
+            str,
+            discord.Option(
+                description=LIST_TOPIC_OPTION_DESCRIPTION,
+                choices=REFERENCE_LIST_TOPIC_CHOICES,
+            ),
+        ] = "all",
+        private: Annotated[
+            bool,
+            discord.Option(description=PRIVATE_OPTION_DESCRIPTION),
+        ] = False,
+    ) -> None:
+        response = ResponseSession(ctx, private)
+        await response.defer()
+        if not self.catalog.entries or not self.search_index.documents:
+            await self.load_references()
+        if not self.catalog.entries or not self.search_index.documents:
+            await response.send(REFERENCE_LIST_NOT_READY_MESSAGE, error=True)
+            return
+        try:
+            results = reference_list_results(self.catalog.entries, topic)
+        except ValueError as exc:
+            await response.send(str(exc), error=True)
+            return
+        if not results:
+            await response.send(NO_LIST_RESULTS_MESSAGE, error=True)
+            return
+
+        embeds = reference_list_embeds(topic, results)
+        view = ReferenceNavigatorView(
+            owner_id=ctx.author.id,
+            query=f"list:{topic}",
             results=results,
             search_pages=embeds,
             payload_for=self.search_index.payload_for,

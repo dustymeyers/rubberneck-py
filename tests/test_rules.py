@@ -1,3 +1,5 @@
+import pytest
+
 from rubberneck.cogs.rules import (
     EMPTY_REFERENCE_DESCRIPTION,
     RULE_PAGE_DESCRIPTION_LIMIT,
@@ -6,6 +8,8 @@ from rubberneck.cogs.rules import (
     format_reference_description,
     format_rule_description,
     reference_embeds,
+    reference_list_embeds,
+    reference_list_results,
     search_result_embeds,
     split_description,
 )
@@ -52,10 +56,10 @@ def test_rule_option_is_a_real_string_type_with_autocomplete():
     assert option.autocomplete is Rules.rule_autocomplete
 
 
-def test_rules_group_registers_lookup_and_search():
+def test_rules_group_registers_lookup_search_and_list():
     commands = {command.name: command for command in Rules.rules.subcommands}
 
-    assert set(commands) == {"lookup", "search"}
+    assert set(commands) == {"lookup", "search", "list"}
     lookup_option = next(
         option for option in commands["lookup"].options if option.name == "term"
     )
@@ -66,6 +70,14 @@ def test_rules_group_registers_lookup_and_search():
     )
     assert search_option._raw_type is str
     assert search_option.autocomplete is None
+    topic_option = next(
+        option for option in commands["list"].options if option.name == "topic"
+    )
+    assert [choice.value for choice in topic_option.choices] == [
+        "all",
+        "rules",
+        "conditions",
+    ]
 
 
 def test_rule_markdown_removes_duplicate_title_and_formats_headings():
@@ -175,3 +187,23 @@ def test_search_results_are_grouped_five_per_page():
     assert len(embeds[1].fields) == 2
     assert embeds[0].fields[0].name == "1. Rule 0 — Rule"
     assert embeds[1].fields[0].name == "6. Rule 5 — Rule"
+
+
+def test_reference_list_filters_and_sorts_results():
+    entries = [
+        ReferenceEntry("restrained", "Restrained", "/conditions/restrained", CONDITION),
+        ReferenceEntry("cover", "Cover", "/rule-sections/cover", RULE),
+        ReferenceEntry("invisible", "Invisible", "/conditions/invisible", CONDITION),
+    ]
+
+    results = reference_list_results(entries, "conditions")
+    embeds = reference_list_embeds("conditions", results)
+
+    assert [result.entry.name for result in results] == ["Invisible", "Restrained"]
+    assert embeds[0].title == "SRD references — Conditions"
+    assert embeds[0].fields[0].name == "1. Invisible — Condition"
+
+
+def test_reference_list_rejects_invalid_topics():
+    with pytest.raises(ValueError, match="all, rules, or conditions"):
+        reference_list_results([], "spells")

@@ -5,7 +5,10 @@ import pytest
 
 import rubberneck.cogs.rules as rules_module
 from rubberneck.cogs.rules import (
+    INVALID_LIST_TOPIC_MESSAGE,
+    NO_LIST_RESULTS_MESSAGE,
     NO_SEARCH_RESULTS_MESSAGE,
+    REFERENCE_LIST_NOT_READY_MESSAGE,
     REFERENCE_NOT_FOUND_MESSAGE,
     RULE_NOT_FOUND_MESSAGE,
     SEARCH_NOT_READY_MESSAGE,
@@ -219,6 +222,54 @@ async def test_search_uses_one_navigator_for_multiple_pages(cog, ctx):
     assert response["embed"].title.endswith("(1/2)")
     assert len(response["view"].search_pages) == 2
     assert len(response["view"].result_buttons) == 5
+
+
+@pytest.mark.asyncio
+async def test_list_builds_navigable_private_catalog_pages(cog, ctx):
+    rule = search_result(1).entry
+    condition = ReferenceEntry(
+        "restrained",
+        "Restrained",
+        "/conditions/restrained",
+        rules_module.CONDITION,
+    )
+    cog.catalog.entries = [condition, rule]
+    cog.search_index.documents = (object(),)
+
+    await Rules.list_references.callback(
+        cog,
+        ctx,
+        topic="all",
+        private=True,
+    )
+
+    ctx.defer.assert_awaited_once_with(ephemeral=True)
+    response = ctx.respond.await_args.kwargs
+    assert response["ephemeral"] is True
+    assert response["embed"].title == "SRD references — All"
+    assert [result.entry.name for result in response["view"].results] == [
+        "Restrained",
+        "Rule 1",
+    ]
+    assert response["view"].owner_id == ctx.author.id
+
+
+@pytest.mark.asyncio
+async def test_list_reports_not_ready_and_invalid_topics(cog, ctx):
+    cog.load_references = AsyncMock()
+
+    await Rules.list_references.callback(cog, ctx)
+    ctx.respond.assert_awaited_with(REFERENCE_LIST_NOT_READY_MESSAGE, ephemeral=True)
+
+    ctx.respond.reset_mock()
+    cog.catalog.entries = [search_result().entry]
+    cog.search_index.documents = (object(),)
+    await Rules.list_references.callback(cog, ctx, topic="spells")
+    ctx.respond.assert_awaited_with(INVALID_LIST_TOPIC_MESSAGE, ephemeral=True)
+
+    ctx.respond.reset_mock()
+    await Rules.list_references.callback(cog, ctx, topic="conditions")
+    ctx.respond.assert_awaited_with(NO_LIST_RESULTS_MESSAGE, ephemeral=True)
 
 
 @pytest.mark.asyncio

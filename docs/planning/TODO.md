@@ -38,14 +38,14 @@ belong in `ROADMAP.md`.
 
 ### 4. Add Browsable Rule Listings
 
-- [ ] Finalize `/rules list [topic]` semantics using the currently supported
+- [x] Finalize `/rules list [topic]` semantics using the currently supported
   rule and condition categories.
-- [ ] Build list results from the warm local catalog with deterministic
+- [x] Build list results from the warm local catalog with deterministic
   ordering and no per-command API request.
-- [ ] Reuse the existing one-message paginator and result-to-reference
+- [x] Reuse the existing one-message paginator and result-to-reference
   navigation.
-- [ ] Provide useful empty-topic, empty-catalog, and invalid-topic responses.
-- [ ] Test filtering, ordering, pagination, result selection, back/forward
+- [x] Provide useful empty-topic, empty-catalog, and invalid-topic responses.
+- [x] Test filtering, ordering, pagination, result selection, back/forward
   navigation, interaction ownership, and private visibility.
 
 ### 5. Block Closeout
