@@ -140,3 +140,8 @@ continue beyond a single hop.
 The first table translation was still too dense in live use. Table rows now
 render as separate vertical blocks with one quoted `heading: value` line per
 cell, trading some height for much faster scanning.
+
+Live Discord verification confirmed numbered search-result selection, full
+reference paging, exact Back and Forward restoration, multi-hop related
+navigation, single-message updates, and readable vertical table formatting.
+Feature Block 3 is complete.
